@@ -148,13 +148,22 @@ final class HTTPHandler: ChannelInboundHandler {
     }
     
     private func handleRequest(ctx: ChannelHandlerContext) {
-        guard let requestHead = self.infoSavedRequestHead, let handler = self.routeHandler else {
+        guard let request = self.infoSavedRequestHead, let handler = self.routeHandler else {
             fatalError("Something totaly wrong, should never happen")
         }
         
-        let request = SgRequest(pattern: "", uri: requestHead.uri, method: requestHead.method, headers: requestHead.headers, body: nil)
-        let response = handler.handle(request: request)
+        let sgRequest = SgRequest(pattern: "", uri: request.uri, method: request.method, headers: request.headers, body: nil)
+        let result = handler.handle(request: sgRequest)
         
+        switch result {
+        case .data(let response):
+            sendDataResponse(ctx: ctx, request: request, response: response)
+        case .file(let response):
+            sendFileResponse(ctx: ctx, request: request, response: response)
+        }
+    }
+    
+    private func sendDataResponse(ctx: ChannelHandlerContext, request: HTTPRequestHead, response: SgDataResponse) {
         var headers = response.headers
         var buffer: ByteBuffer?
         
@@ -164,11 +173,16 @@ final class HTTPHandler: ChannelInboundHandler {
             headers.add(name: "Content-Length", value: "\(body.count)")
         }
         
-        ctx.write(self.wrapOutboundOut(.head(httpResponseHead(request: requestHead, status: response.code, headers: headers))), promise: nil)
+        ctx.write(self.wrapOutboundOut(.head(httpResponseHead(request: request, status: response.code, headers: headers))), promise: nil)
         if let buffer = buffer {
             ctx.write(self.wrapOutboundOut(.body(.byteBuffer(buffer))), promise: nil)
         }
+        
         self.completeResponse(ctx, trailers: nil, promise: nil)
+    }
+    
+    private func sendFileResponse(ctx: ChannelHandlerContext, request: HTTPRequestHead, response: SgFileResponse) {
+        fatalError("Doesn't support file response yet")
     }
     
     private func sendErrorResponse(ctx: ChannelHandlerContext, request: HTTPRequestHead, error: Error) {

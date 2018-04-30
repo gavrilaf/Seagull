@@ -17,8 +17,8 @@ let f3: RequestHandler = { (_, _) in
 }
 
 
-router.addHandler(forMethod: .GET, relativePath: "/text1", handlers: [f1])
-router.addHandler(forMethod: .GET, relativePath: "/text2", handlers: [f2])
-router.addHandler(forMethod: .GET, relativePath: "/text3", handlers: [f3])
+router.addHandler(forMethod: .GET, relativePath: "/text1", handler: f1, middleware: [])
+router.addHandler(forMethod: .GET, relativePath: "/text2", handler: f2, middleware: [])
+router.addHandler(forMethod: .GET, relativePath: "/text3", handler: f3, middleware: [])
 
 engine.Run(router: router)

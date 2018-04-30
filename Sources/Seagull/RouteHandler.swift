@@ -2,27 +2,28 @@ import Foundation
 import NIOHTTP1
 
 struct RouteHandler {
+    let middleware: MiddlewareChain
+    let handler: RequestHandler
     
-    let handlers: [RequestHandler]
-    
-    init(handlers: [RequestHandler]) {
-        self.handlers = handlers
+    init(middleware: MiddlewareChain, handler: @escaping RequestHandler) {
+        self.middleware = middleware
+        self.handler = handler
     }
     
-    func handle(request: SgRequest) -> SgResponse {
+    func handle(request: SgRequest) -> SgResult {
         
         var currentContext = SgRequestContext()
         
-        for handler in handlers {
-            let res = handler(request, currentContext)
+        for middleware in middleware {
+            let res = middleware(request, currentContext)
             switch res {
-            case .finished(let response):
-                return response
-            case .next(let context):
+            case .failure(let err):
+                return SgResult.from(error: err)
+            case .success(let context):
                 currentContext = context
             }
         }
         
-        return SgResponse.from(error: SgError(code: .internalServerError, text: "invalid handlers chain"))
+        return handler(request, currentContext)
     }
 }

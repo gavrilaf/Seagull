@@ -6,8 +6,8 @@ public struct Router {
     
     public init() {}
     
-    public mutating func addHandler(forMethod method: HTTPMethod, relativePath: String, handlers: [RequestHandler]) {
-        self.handlers[relativePath] = RouteHandler(handlers: handlers)
+    public mutating func addHandler(forMethod method: HTTPMethod, relativePath: String, handler: @escaping RequestHandler, middleware: MiddlewareChain = []) {
+        self.handlers[relativePath] = RouteHandler(middleware: middleware, handler: handler)
     }
     
     func getHandler(forUri uri: String, method: HTTPMethod) -> Result<RouteHandler, SgError> {

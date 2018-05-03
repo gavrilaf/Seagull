@@ -28,3 +28,10 @@ extension SgDataResponse {
 }
 
 
+ extension SgFileResponse {
+    public static func from(path: String) -> SgFileResponse {
+        return SgFileResponse(code: .ok, headers: HTTPHeaders(), path: path)
+    }
+}
+
+

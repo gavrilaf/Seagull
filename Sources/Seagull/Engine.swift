@@ -13,6 +13,12 @@ public struct Engine {
 
         let group = MultiThreadedEventLoopGroup(numThreads: System.coreCount)
         
+        let threadPool = BlockingIOThreadPool(numberOfThreads: 6)
+        threadPool.start()
+        
+        let fileIO = NonBlockingFileIO(threadPool: threadPool)
+
+        
         let bootstrap = ServerBootstrap(group: group)
             // Specify backlog and enable SO_REUSEADDR for the server itself
             .serverChannelOption(ChannelOptions.backlog, value: 256)
@@ -21,7 +27,7 @@ public struct Engine {
             // Set the handlers that are applied to the accepted Channels
             .childChannelInitializer { channel in
                 channel.pipeline.configureHTTPServerPipeline(withErrorHandling: true).then {
-                    channel.pipeline.add(handler: HTTPHandler(router: router))
+                    channel.pipeline.add(handler: HTTPHandler(router: router, fileIO: fileIO))
                 }
             }
             

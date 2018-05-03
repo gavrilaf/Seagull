@@ -51,19 +51,19 @@ final class HTTPHandler: ChannelInboundHandler {
         }
     }
     
-    //private var buffer: ByteBuffer! = nil
     private var keepAlive = false
     private var state = State.idle
-    
     
     private var infoSavedRequestHead: HTTPRequestHead?
     private var infoSavedBodyBytes: Int = 0
     
+    private let fileIO: NonBlockingFileIO
     private let router: Router
     private var routeHandler: RouteHandler?
     
-    public init(router: Router) {
+    public init(router: Router, fileIO: NonBlockingFileIO) {
         self.router = router
+        self.fileIO = fileIO
     }
     
     // MARK: -
@@ -182,7 +182,51 @@ final class HTTPHandler: ChannelInboundHandler {
     }
     
     private func sendFileResponse(ctx: ChannelHandlerContext, request: HTTPRequestHead, response: SgFileResponse) {
-        fatalError("Doesn't support file response yet")
+        let fileHandle = self.fileIO.openFile(path: response.path, eventLoop: ctx.eventLoop)
+        
+        func responseHead(request: HTTPRequestHead, fileRegion region: FileRegion) -> HTTPResponseHead {
+            var response = httpResponseHead(request: request, status: .ok)
+            response.headers.add(name: "Content-Length", value: "\(region.endIndex)")
+            response.headers.add(name: "Content-Type", value: "text/plain; charset=utf-8")
+            return response
+        }
+        
+        fileHandle.whenFailure {
+            self.sendErrorResponse(ctx: ctx, request: request, error: $0)
+        }
+        
+        fileHandle.whenSuccess { (file, region) in
+            var responseStarted = false
+            let response = responseHead(request: request, fileRegion: region)
+            return self.fileIO.readChunked(fileRegion: region,
+                                           chunkSize: 32 * 1024,
+                                           allocator: ctx.channel.allocator,
+                                           eventLoop: ctx.eventLoop) { buffer in
+                                                if !responseStarted {
+                                                    responseStarted = true
+                                                    ctx.write(self.wrapOutboundOut(.head(response)), promise: nil)
+                                                }
+                                                return ctx.writeAndFlush(self.wrapOutboundOut(.body(.byteBuffer(buffer))))
+                    }.then { () -> EventLoopFuture<Void> in
+                        let p: EventLoopPromise<Void> = ctx.eventLoop.newPromise()
+                        self.completeResponse(ctx, trailers: nil, promise: p)
+                        return p.futureResult
+                    }.thenIfError { error in
+                        if !responseStarted {
+                            let response = httpResponseHead(request: request, status: .ok)
+                            ctx.write(self.wrapOutboundOut(.head(response)), promise: nil)
+                            var buffer = ctx.channel.allocator.buffer(capacity: 100)
+                            buffer.write(string: "fail: \(error)")
+                            ctx.write(self.wrapOutboundOut(.body(.byteBuffer(buffer))), promise: nil)
+                            self.state.responseComplete()
+                            return ctx.writeAndFlush(self.wrapOutboundOut(.end(nil)))
+                        } else {
+                            return ctx.close()
+                        }
+                    }.whenComplete {
+                        _ = try? file.close()
+                }
+        }
     }
     
     private func sendErrorResponse(ctx: ChannelHandlerContext, request: HTTPRequestHead, error: Error) {

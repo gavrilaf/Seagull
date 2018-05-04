@@ -9,7 +9,7 @@ public struct Engine {
         print("Seagull engine starting....")
         
         let defaultHost = "::1"
-        let defaultPort = 8006
+        let defaultPort = 8007
 
         let group = MultiThreadedEventLoopGroup(numThreads: System.coreCount)
         

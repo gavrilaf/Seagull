@@ -11,12 +11,12 @@ struct RouteHandler {
     }
     
     func handle(request: SgRequest) -> SgResult {
-        let mres = self.middleware.processMiddleware(request: request, context: SgRequestContext())
-        switch mres {
+        let result = self.middleware.processMiddleware(request: request, context: SgRequestContext())
+        switch result {
         case .success(let context):
             return handler(request, context)
         case .failure(let err):
-            return SgResult.from(error: err)
+            return SgResult.error(response: err)
         }
     }
 }

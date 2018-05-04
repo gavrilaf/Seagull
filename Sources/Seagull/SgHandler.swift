@@ -2,12 +2,9 @@ import Foundation
 import NIOHTTP1
 import Result
 
-public struct SgError: Error {
-    public let code: HTTPResponseStatus
-    public let text: String
-}
+public typealias RequestHandler = (SgRequest, SgRequestContext) -> SgResult
 
-public typealias MiddlewareResult = Result<SgRequestContext, SgError>
+public typealias MiddlewareResult = Result<SgRequestContext, SgErrorResponse>
 public typealias MiddlewareHandler = (SgRequest, SgRequestContext) -> MiddlewareResult
 public typealias MiddlewareChain = [MiddlewareHandler]
 
@@ -27,6 +24,6 @@ extension Array where Element == MiddlewareHandler {
     }
 }
 
-public typealias RequestHandler = (SgRequest, SgRequestContext) -> SgResult
+
 
 

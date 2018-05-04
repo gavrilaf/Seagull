@@ -149,7 +149,7 @@ final class HTTPHandler: ChannelInboundHandler {
     
     private func handleRequest(ctx: ChannelHandlerContext) {
         guard let request = self.infoSavedRequestHead, let handler = self.routeHandler else {
-            fatalError("Something totaly wrong, should never happen")
+            fatalError("Something wrong, should never happens")
         }
         
         let sgRequest = SgRequest(pattern: "", uri: request.uri, method: request.method, headers: request.headers, body: nil)
@@ -160,6 +160,8 @@ final class HTTPHandler: ChannelInboundHandler {
             sendDataResponse(ctx: ctx, request: request, response: response)
         case .file(let response):
             sendFileResponse(ctx: ctx, request: request, response: response)
+        case .error(let error):
+            sendErrorResponse(ctx: ctx, request: request, error: error)
         }
     }
     
@@ -233,27 +235,21 @@ final class HTTPHandler: ChannelInboundHandler {
         var body = ctx.channel.allocator.buffer(capacity: 128)
         let response = { () -> HTTPResponseHead in
             switch error {
-            case let e as SgError:
-                body.write(string: "\(e.text)\r\n")
-                return httpResponseHead(request: request, status: e.code)
-            case let e as IOError where e.errnoCode == ENOENT:
-                body.write(staticString: "IOError (not found)\r\n")
-                return httpResponseHead(request: request, status: .notFound)
-            case let e as IOError:
-                body.write(staticString: "IOError (other)\r\n")
-                body.write(string: e.description)
-                body.write(staticString: "\r\n")
-                return httpResponseHead(request: request, status: .notFound)
+            case let e as SgErrorResponse:
+                if let respBody = e.response.body {
+                    body.write(bytes: respBody)
+                }
+                return httpResponseHead(request: request, status: e.response.code, headers: e.response.headers)
             default:
-                body.write(string: "\(type(of: error)) error\r\n")
+                body.write(string: "Error: \(type(of: error)) error\r\n")
                 return httpResponseHead(request: request, status: .internalServerError)
             }
         }()
-        body.write(string: "\(error)")
-        body.write(staticString: "\r\n")
+        
         ctx.write(self.wrapOutboundOut(.head(response)), promise: nil)
         ctx.write(self.wrapOutboundOut(.body(.byteBuffer(body))), promise: nil)
         ctx.writeAndFlush(self.wrapOutboundOut(.end(nil)), promise: nil)
+        
         ctx.channel.close(promise: nil)
     }
     

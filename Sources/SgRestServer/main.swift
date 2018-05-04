@@ -6,15 +6,36 @@ let engine = Engine()
 var router = Router()
 
 let f1: RequestHandler = { (_, _) in
-    return SgResult.from(string: "text-111")
+    return SgResult.data(response: SgDataResponse.from(string: "This is just a string"))
 }
 
 let f2: RequestHandler = { (_, _) in
-    return SgResult.from(string: "text-222")
+    
+    struct TestObj: Encodable {
+        let id: Int
+        let name: String
+        let status: Bool
+    }
+    
+    do {
+        return SgResult.data(response: try SgDataResponse.from(json: TestObj(id: 1, name: "This is name", status: true)))
+    } catch let err {
+        return SgResult.error(response: SgErrorResponse.from(error: err))
+    }
 }
 
 let f3: RequestHandler = { (_, _) in
-    return SgResult.from(string: "text-333")
+    let dict: [String: Any] = [
+        "id": 123,
+        "first_name": "Vasya",
+        "info": ["locked": false, "scope": 12]
+    ]
+    
+    do {
+        return SgResult.data(response: try SgDataResponse.from(dict: dict))
+    } catch let err {
+        return SgResult.error(response: SgErrorResponse.from(error: err))
+    }
 }
 
 let f4: RequestHandler = { (_, _) in
@@ -22,10 +43,10 @@ let f4: RequestHandler = { (_, _) in
     return SgResult.file(response: fileResp)
 }
 
-router.addHandler(forMethod: .GET, relativePath: "/text1", handler: f1, middleware: [])
-router.addHandler(forMethod: .GET, relativePath: "/text2", handler: f2, middleware: [])
-router.addHandler(forMethod: .GET, relativePath: "/text3", handler: f3, middleware: [])
+router.addHandler(forMethod: .GET, relativePath: "/text", handler: f1, middleware: [])
+router.addHandler(forMethod: .GET, relativePath: "/json-obj", handler: f2, middleware: [])
+router.addHandler(forMethod: .GET, relativePath: "/json-dict", handler: f3, middleware: [])
 
-router.addHandler(forMethod: .GET, relativePath: "/file-1", handler: f4, middleware: [])
+router.addHandler(forMethod: .GET, relativePath: "/file", handler: f4, middleware: [])
 
 engine.Run(router: router)

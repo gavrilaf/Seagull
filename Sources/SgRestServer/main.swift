@@ -43,10 +43,9 @@ let f4: RequestHandler = { (_, _) in
     return SgResult.file(response: fileResp)
 }
 
-router.addHandler(forMethod: .GET, relativePath: "/text", handler: f1, middleware: [])
-router.addHandler(forMethod: .GET, relativePath: "/json-obj", handler: f2, middleware: [])
-router.addHandler(forMethod: .GET, relativePath: "/json-dict", handler: f3, middleware: [])
-
-router.addHandler(forMethod: .GET, relativePath: "/file", handler: f4, middleware: [])
+try! router.add(method: .GET, relativePath: "/text", middleware: [], handler: f1)
+try! router.add(method: .GET, relativePath: "/json-obj", middleware: [], handler: f2)
+try! router.add(method: .GET, relativePath: "/json-dict", middleware: [], handler: f3)
+try! router.add(method: .GET, relativePath: "/file", middleware: [], handler: f4)
 
 engine.Run(router: router)

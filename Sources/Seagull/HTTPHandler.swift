@@ -59,7 +59,7 @@ final class HTTPHandler: ChannelInboundHandler {
     
     private let fileIO: NonBlockingFileIO
     private let router: Router
-    private var routeHandler: RouteHandler?
+    private var parsedPath: Router.ParsedPath?
     
     public init(router: Router, fileIO: NonBlockingFileIO) {
         self.router = router
@@ -70,7 +70,7 @@ final class HTTPHandler: ChannelInboundHandler {
     func channelRead(ctx: ChannelHandlerContext, data: NIOAny) {
         let reqPart = self.unwrapInboundIn(data)
         
-        if self.routeHandler != nil { // Route handler already initialized, just continue processing
+        if self.parsedPath != nil { // Route handler already initialized, just continue processing
             handlerReqPart(ctx: ctx, reqPart: reqPart)
             return
         }
@@ -79,10 +79,10 @@ final class HTTPHandler: ChannelInboundHandler {
         case .head(let request):
             print("request: \(request.uri), \(request.method)\n")
             
-            let res = router.getHandler(forUri: request.uri, method: request.method)
+            let res = router.lookup(method: request.method, uri: request.uri)
             switch res {
-            case .success(let handler):
-                self.routeHandler = handler
+            case .success(let parsedPath):
+                self.parsedPath = parsedPath
                 handlerReqPart(ctx: ctx, reqPart: reqPart)
             case .failure(let err):
                 self.keepAlive = request.isKeepAlive
@@ -148,12 +148,12 @@ final class HTTPHandler: ChannelInboundHandler {
     }
     
     private func handleRequest(ctx: ChannelHandlerContext) {
-        guard let request = self.infoSavedRequestHead, let handler = self.routeHandler else {
+        guard let request = self.infoSavedRequestHead, let parsedPath = self.parsedPath else {
             fatalError("Something wrong, should never happens")
         }
         
-        let sgRequest = SgRequest(pattern: "", uri: request.uri, method: request.method, headers: request.headers, body: nil)
-        let result = handler.handle(request: sgRequest)
+        let sgRequest = SgRequest.from(parsedPath: parsedPath, request: request)
+        let result = parsedPath.handler(sgRequest, SgRequestContext())
         
         switch result {
         case .data(let response):
@@ -264,7 +264,7 @@ final class HTTPHandler: ChannelInboundHandler {
         
         ctx.writeAndFlush(self.wrapOutboundOut(.end(trailers)), promise: promise)
         
-        self.routeHandler = nil
+        self.parsedPath = nil
     }
 }
 

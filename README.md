@@ -1,3 +1,5 @@
 # Seagull
 
-A description of this package.
+Swift web framework based on the swift-nio.
+
+In active development

@@ -6,13 +6,28 @@ public enum RouterError: Error {
     case onlyOneWildAllowed
 }
 
+public typealias StringDict = [String: String]
+
+public struct ParsedPath {
+    public let pattern: String
+    public let method: HTTPMethod
+    public let urlParams: StringDict
+    public let queryParams: StringDict
+    public let middleware: MiddlewareChain
+    public let handler: RequestHandler
+}
+
+public typealias RouterResult = Result<ParsedPath, SgErrorResponse>
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 public final class Router {
     
     public init() {
         root = Node(name: "*")
     }
     
-    public func add(method: HTTPMethod, relativePath: String, middleware: MiddlewareChain, handler: @escaping RequestHandler) throws {
+    public func add(method: HTTPMethod, relativePath: String, handler: @escaping RequestHandler, middleware: MiddlewareChain = []) throws {
         var current = root
         let components = PathBuilder(method: method, uri: relativePath).pathComponents
         
@@ -46,19 +61,9 @@ public final class Router {
         current.handler = handler
     }
     
-    // MARK: - Internal
-    
-    struct ParsedPath {
-        let pattern: String
-        let urlParams: [String: String]
-        let queryParams: [String: String]
-        let middleware: MiddlewareChain
-        let handler: RequestHandler
-    }
-    
-    func lookup(method: HTTPMethod, uri: String) -> Result<ParsedPath, SgErrorResponse> {
+    public func lookup(method: HTTPMethod, uri: String) -> RouterResult {
         var current = root
-        var urlParams = [String: String]()
+        var urlParams = StringDict()
         let components = PathBuilder(method: method, uri: uri).pathComponents
         
         for s in components {
@@ -73,18 +78,24 @@ public final class Router {
         }
         
         if let pattern = current.pattern, let middleware = current.middleware, let handler = current.handler {
-            let p = ParsedPath(pattern: pattern, urlParams: urlParams, queryParams: [:], middleware: middleware, handler: handler)
+            let p = ParsedPath(pattern: pattern,
+                               method: method,
+                               urlParams: urlParams,
+                               queryParams: [:],
+                               middleware: middleware,
+                               handler: handler)
+            
             return Result(value: p)
         }
         
         return Result(error: notFoundError(method: method, uri: uri))
     }
     
+    // MARK: -
+    
     func notFoundError(method: HTTPMethod, uri: String) -> SgErrorResponse {
         return SgErrorResponse.from(string: "Handler for \(method.str) : \(uri) not found", code: .notFound)
     }
-    
-    // MARK: - Private
     
     private final class Node {
         init(name: String) {

@@ -59,7 +59,7 @@ final class HTTPHandler: ChannelInboundHandler {
     
     private let fileIO: NonBlockingFileIO
     private let router: Router
-    private var parsedPath: Router.ParsedPath?
+    private var parsedPath: ParsedPath?
     
     public init(router: Router, fileIO: NonBlockingFileIO) {
         self.router = router

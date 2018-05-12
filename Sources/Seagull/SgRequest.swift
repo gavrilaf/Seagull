@@ -12,7 +12,7 @@ public struct SgRequest {
 }
 
 extension SgRequest {
-    static func from(parsedPath: Router.ParsedPath, request: HTTPRequestHead) -> SgRequest {
+    static func from(parsedPath: ParsedPath, request: HTTPRequestHead) -> SgRequest {
         return SgRequest(pattern: parsedPath.pattern,
                          uri: request.uri,
                          method: request.method,

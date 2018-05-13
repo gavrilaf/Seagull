@@ -2,5 +2,6 @@ import XCTest
 @testable import SeagullTests
 
 XCTMain([
-    testCase(SeagullTests.allTests),
+    testCase(RouterTests.allTests),
+    testCase(EngineTests.allTests),
 ])

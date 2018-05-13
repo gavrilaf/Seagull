@@ -55,7 +55,8 @@ public class Engine {
         return channel?.localAddress
     }
     
-    public func cleanup() throws {
+    public func close() throws {
+        try channel?.close().wait()
         try threadGroup?.syncShutdownGracefully()
     }
     

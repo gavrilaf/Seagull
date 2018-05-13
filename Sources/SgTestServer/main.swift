@@ -15,7 +15,7 @@ do {
     
     try engine.run(host: "::1", port: 8010)
     
-    defer { try! engine.cleanup() }
+    defer { try! engine.close() }
     try engine.waitForCompletion()
     
 } catch let err {

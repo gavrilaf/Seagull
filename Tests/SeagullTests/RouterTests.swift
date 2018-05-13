@@ -54,4 +54,10 @@ class RouterTests: XCTestCase {
         }
     }
     
+    // MARK: -
+    static var allTests = [
+        ("testStaticRoutes", testStaticRoutes),
+        ("testMethods", testMethods),
+        ("testParams", testParams),
+    ]
 }

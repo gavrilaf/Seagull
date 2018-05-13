@@ -1,60 +1,73 @@
 import NIO
 import NIOHTTP1
 
+public enum EngineError: Error {
+    case bindError
+}
 
-public struct Engine {
-    public init() {}
+public class Engine {
     
-    public func Run(router: Router) {
+    public init(router: Router) {
+        self.router = router
+    }
+    
+    public func run(host: String, port: Int) throws {
         print("Seagull engine starting....")
         
-        let defaultHost = "::1"
-        let defaultPort = 8007
-
         let group = MultiThreadedEventLoopGroup(numThreads: System.coreCount)
         
         let threadPool = BlockingIOThreadPool(numberOfThreads: 6)
         threadPool.start()
         
         let fileIO = NonBlockingFileIO(threadPool: threadPool)
-
         
         let bootstrap = ServerBootstrap(group: group)
-            // Specify backlog and enable SO_REUSEADDR for the server itself
             .serverChannelOption(ChannelOptions.backlog, value: 256)
             .serverChannelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
-            
-            // Set the handlers that are applied to the accepted Channels
             .childChannelInitializer { channel in
-                channel.pipeline.configureHTTPServerPipeline(withErrorHandling: true).then {
-                    channel.pipeline.add(handler: HTTPHandler(router: router, fileIO: fileIO))
+                channel.pipeline.configureHTTPServerPipeline(withErrorHandling: true).then { [weak self] in
+                    guard let sself = self else {
+                        fatalError("Seagull engine is nil")
+                    }
+                    return channel.pipeline.add(handler: HTTPHandler(router: sself.router, fileIO: fileIO))
                 }
             }
-            
-            // Enable TCP_NODELAY and SO_REUSEADDR for the accepted Channels
             .childChannelOption(ChannelOptions.socket(IPPROTO_TCP, TCP_NODELAY), value: 1)
             .childChannelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
             .childChannelOption(ChannelOptions.maxMessagesPerRead, value: 1)
             .childChannelOption(ChannelOptions.allowRemoteHalfClosure, value: true)
         
-        defer {
-            try! group.syncShutdownGracefully()
-        }
-        
-        let channel = try! { () -> Channel in
-            return try bootstrap.bind(host: defaultHost, port: defaultPort).wait()
+        let channel = try { () -> Channel in
+            return try bootstrap.bind(host: host, port: port).wait()
         }()
         
-        guard let localAddress = channel.localAddress else {
-            fatalError("Address was unable to bind. Please check that the socket was not closed or that the address family was understood.")
+        if channel.localAddress == nil {
+            throw EngineError.bindError
         }
-        print("Server started and listening on \(localAddress)")
         
-        // This will never unblock as we don't close the ServerChannel
-        try! channel.closeFuture.wait()
+        self.threadGroup = group
+        self.channel = channel
         
-        print("Server closed")
+        print("Server started and listening on \(String(describing: localAddress))")
     }
+    
+    public var localAddress: SocketAddress? {
+        return channel?.localAddress
+    }
+    
+    public func cleanup() throws {
+        try threadGroup?.syncShutdownGracefully()
+    }
+    
+    public func waitForCompletion() throws {
+        try channel?.closeFuture.wait()
+    }
+    
+    // MARK: -
+    
+    private let router: Router
+    private var threadGroup: MultiThreadedEventLoopGroup?
+    private var channel: Channel?
 }
 
 

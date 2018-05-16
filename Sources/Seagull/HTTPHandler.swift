@@ -1,7 +1,6 @@
 import NIO
 import NIOHTTP1
 
-
 private func httpResponseHead(request: HTTPRequestHead, status: HTTPResponseStatus, headers: HTTPHeaders = HTTPHeaders()) -> HTTPResponseHead {
     var head = HTTPResponseHead(version: request.version, status: status, headers: headers)
     let connectionHeaders: [String] = head.headers[canonicalForm: "connection"].map { $0.lowercased() }
@@ -30,6 +29,8 @@ final class HTTPHandler: ChannelInboundHandler {
     public typealias InboundIn = HTTPServerRequestPart
     public typealias OutboundOut = HTTPServerResponsePart
     
+    private let initialBufferCapacity = 100
+    
     private enum State {
         case idle
         case waitingForRequestBody
@@ -54,11 +55,12 @@ final class HTTPHandler: ChannelInboundHandler {
     private var keepAlive = false
     private var state = State.idle
     
-    private var infoSavedRequestHead: HTTPRequestHead?
-    private var infoSavedBodyBytes: Int = 0
+    private var savedRequestHead: HTTPRequestHead?
+    private var savedBody: ByteBuffer?
     
     private let fileIO: NonBlockingFileIO
     private let router: Router
+    
     private var parsedPath: ParsedPath?
     
     public init(router: Router, fileIO: NonBlockingFileIO) {
@@ -77,8 +79,6 @@ final class HTTPHandler: ChannelInboundHandler {
         
         switch reqPart {
         case .head(let request):
-            print("request: \(request.uri), \(request.method)\n")
-            
             let res = router.lookup(method: request.method, uri: request.uri)
             switch res {
             case .success(let parsedPath):
@@ -91,22 +91,19 @@ final class HTTPHandler: ChannelInboundHandler {
             }
             
         case .body:
-            print("body:\n")
             break
             
         case .end:
-            print("end:\n")
             self.state.requestComplete()
         }
     }
     
     func channelReadComplete(ctx: ChannelHandlerContext) {
-        print("channelReadComplete:\n")
         ctx.flush()
     }
     
     func handlerAdded(ctx: ChannelHandlerContext) {
-        print("handlerAdded:\n")
+        
     }
     
     func userInboundEventTriggered(ctx: ChannelHandlerContext, event: Any) {
@@ -129,30 +126,30 @@ final class HTTPHandler: ChannelInboundHandler {
     
     // MARK: -
     private func handlerReqPart(ctx: ChannelHandlerContext, reqPart: HTTPServerRequestPart) {
-        print("handlerReqPart \n")
         switch reqPart {
         case .head(let request):
-            print("head received\n")
-            self.infoSavedRequestHead = request
-            self.infoSavedBodyBytes = 0
+            self.savedRequestHead = request
             self.keepAlive = request.isKeepAlive
             self.state.requestReceived()
-        case .body(buffer: let buf):
-            print("body received\n")
-            self.infoSavedBodyBytes += buf.readableBytes
+        case .body(var buf):
+            if buf.readableBytes > 0 {
+                if self.savedBody == nil {
+                    self.savedBody = ctx.channel.allocator.buffer(capacity: buf.readableBytes)
+                }
+                self.savedBody?.write(buffer: &buf)
+            }
         case .end:
-            print("end received\n")
             self.state.requestComplete()
             handleRequest(ctx: ctx)
         }
     }
     
     private func handleRequest(ctx: ChannelHandlerContext) {
-        guard let request = self.infoSavedRequestHead, let parsedPath = self.parsedPath else {
+        guard let request = self.savedRequestHead, let parsedPath = self.parsedPath else {
             fatalError("Something wrong, should never happens")
         }
         
-        let sgRequest = SgRequest.from(parsedPath: parsedPath, request: request)
+        let sgRequest = SgRequest.from(parsedPath: parsedPath, request: request, body: savedBody)
         let result = parsedPath.handler(sgRequest, SgRequestContext())
         
         switch result {
@@ -254,7 +251,6 @@ final class HTTPHandler: ChannelInboundHandler {
     }
     
     private func completeResponse(_ ctx: ChannelHandlerContext, trailers: HTTPHeaders?, promise: EventLoopPromise<Void>?) {
-        print("completeResponse \n")
         self.state.responseComplete()
         
         let promise = self.keepAlive ? promise : (promise ?? ctx.eventLoop.newPromise())

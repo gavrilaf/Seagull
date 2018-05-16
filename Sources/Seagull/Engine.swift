@@ -9,10 +9,11 @@ public class Engine {
     
     public init(router: Router) {
         self.router = router
+        self.logger = DefaultLogger()
     }
     
     public func run(host: String, port: Int) throws {
-        print("Seagull engine starting....")
+        logger.info("Seagull engine starting....")
         
         let group = MultiThreadedEventLoopGroup(numThreads: System.coreCount)
         
@@ -48,7 +49,7 @@ public class Engine {
         self.threadGroup = group
         self.channel = channel
         
-        print("Server started and listening on \(String(describing: localAddress))")
+        logger.info("Server started and listening on \(String(describing: localAddress))")
     }
     
     public var localAddress: SocketAddress? {
@@ -67,6 +68,9 @@ public class Engine {
     // MARK: -
     
     private let router: Router
+    
+    private let logger: LogProtocol
+    
     private var threadGroup: MultiThreadedEventLoopGroup?
     private var channel: Channel?
 }

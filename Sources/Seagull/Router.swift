@@ -22,7 +22,6 @@ public typealias RouterResult = Result<ParsedPath, SgErrorResponse>
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 public final class Router {
-    
     public init() {
         root = Node(name: "*")
     }

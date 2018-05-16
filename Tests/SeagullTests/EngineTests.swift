@@ -5,6 +5,17 @@ import NIOHTTP1
 
 class EngineTests: XCTestCase {
     
+    struct OpRequest: Codable {
+        let a: Int
+        let b: Int
+        let operation: String
+    }
+
+    struct OpResult: Codable {
+        let result: Int
+        let operation: String
+    }
+
     class TestWebServer {
         var router: Router
         var engine: Engine
@@ -19,6 +30,18 @@ class EngineTests: XCTestCase {
         func run() throws {
             try router.add(method: .GET, relativePath: "/helloworld", handler: { (_, _) -> SgResult in
                 return SgResult.data(response: SgDataResponse.from(string: "Hello world!"))
+            })
+            
+            try router.add(method: .POST, relativePath: "/op", handler: { (req, _) -> SgResult in
+                let decoder = JSONDecoder()
+                let op = try! decoder.decode(OpRequest.self, from: req.body!)
+                
+                switch op.operation {
+                case "+":
+                    return SgResult.data(response: try! SgDataResponse.from(json: OpResult(result: 10, operation: "+")))
+                default:
+                    return SgResult.error(response: SgErrorResponse.from(string: "Unknown operation", code: .notImplemented))
+                }
             })
             
             try engine.run(host: "127.0.0.1", port: 0)
@@ -68,9 +91,50 @@ class EngineTests: XCTestCase {
         
         accumulation.syncWaitForCompletion()
     }
+    
+    func testSuccessOperation() {
+        var expectedHeaders = HTTPHeaders()
+        expectedHeaders.add(name: "Connection", value: "close")
+        expectedHeaders.add(name: "Content-Length", value: "29")
+        expectedHeaders.add(name: "Content-Type", value: "application/json")
+        
+        let jsonStr = "{\"result\":10,\"operation\":\"+\"}"
+        let accumulation = HTTPClientResponsePartAssertHandler(HTTPVersion(major: 1, minor: 1), .ok, expectedHeaders, jsonStr)
+        
+        let clientChannel = try! ClientBootstrap(group: self.clientGroup)
+            .channelInitializer { channel in
+                channel.pipeline.addHTTPClientHandlers().then {
+                    channel.pipeline.add(handler: accumulation)
+                }
+            }
+            .connect(to: self.server.engine.localAddress!)
+            .wait()
+        
+        defer {
+            XCTAssertNoThrow(try clientChannel.syncCloseAcceptingAlreadyClosed())
+        }
+        
+        var head = HTTPRequestHead(version: HTTPVersion(major: 1, minor: 1), method: .POST, uri: "/op")
+        head.headers.add(name: "Connection", value: "close")
+        
+        clientChannel.write(NIOAny(HTTPClientRequestPart.head(head)), promise: nil)
+        
+        let encoder = JSONEncoder()
+        let opObj = OpRequest(a: 2, b: 3, operation: "+")
+        let data = try! encoder.encode(opObj)
+        
+        var buffer = clientChannel.allocator.buffer(capacity: data.count)
+        buffer.write(bytes: data)
+        
+        clientChannel.write(NIOAny(HTTPClientRequestPart.body(IOData.byteBuffer(buffer))), promise: nil)
+        try! clientChannel.writeAndFlush(NIOAny(HTTPClientRequestPart.end(nil))).wait()
+        
+        accumulation.syncWaitForCompletion()
+    }
 
 
     static var allTests = [
         ("testHelloWord", testHelloWord),
+        ("testSuccessOperation", testSuccessOperation)
     ]
 }

@@ -61,7 +61,7 @@ final class HTTPHandler: ChannelInboundHandler {
     private let fileIO: NonBlockingFileIO
     private let router: Router
     
-    private var parsedPath: ParsedPath?
+    private var preparedRequest: PreparedRequest?
     
     public init(router: Router, fileIO: NonBlockingFileIO) {
         self.router = router
@@ -72,22 +72,22 @@ final class HTTPHandler: ChannelInboundHandler {
     func channelRead(ctx: ChannelHandlerContext, data: NIOAny) {
         let reqPart = self.unwrapInboundIn(data)
         
-        if self.parsedPath != nil { // Route handler already initialized, just continue processing
+        if self.preparedRequest != nil { // Route handler already initialized, just continue processing
             handlerReqPart(ctx: ctx, reqPart: reqPart)
             return
         }
         
         switch reqPart {
-        case .head(let request):
-            let res = router.lookup(method: request.method, uri: request.uri)
+        case .head(let head):
+            let res = router.lookup(method: head.method, uri: head.uri)
             switch res {
-            case .success(let parsedPath):
-                self.parsedPath = parsedPath
+            case .success(let preparedRequest):
+                self.preparedRequest = preparedRequest
                 handlerReqPart(ctx: ctx, reqPart: reqPart)
             case .failure(let err):
-                self.keepAlive = request.isKeepAlive
+                self.keepAlive = head.isKeepAlive
                 self.state.requestReceived()
-                sendErrorResponse(ctx: ctx, request: request, error: err)
+                sendErrorResponse(ctx: ctx, head: head, error: err)
             }
             
         case .body:
@@ -145,24 +145,24 @@ final class HTTPHandler: ChannelInboundHandler {
     }
     
     private func handleRequest(ctx: ChannelHandlerContext) {
-        guard let request = self.savedRequestHead, let parsedPath = self.parsedPath else {
+        guard let head = self.savedRequestHead, let preparedRequest = self.preparedRequest else {
             fatalError("Something wrong, should never happens")
         }
         
-        let sgRequest = SgRequest.from(parsedPath: parsedPath, request: request, body: savedBody)
-        let result = parsedPath.handler(sgRequest, SgRequestContext())
+        let sgRequest = SgRequest.from(preparedRequest: preparedRequest, head: head, body: savedBody)
+        let result = preparedRequest.handler(sgRequest, SgRequestContext())
         
         switch result {
         case .data(let response):
-            sendDataResponse(ctx: ctx, request: request, response: response)
+            sendDataResponse(ctx: ctx, head: head, response: response)
         case .file(let response):
-            sendFileResponse(ctx: ctx, request: request, response: response)
+            sendFileResponse(ctx: ctx, head: head, response: response)
         case .error(let error):
-            sendErrorResponse(ctx: ctx, request: request, error: error)
+            sendErrorResponse(ctx: ctx, head: head, error: error)
         }
     }
     
-    private func sendDataResponse(ctx: ChannelHandlerContext, request: HTTPRequestHead, response: SgDataResponse) {
+    private func sendDataResponse(ctx: ChannelHandlerContext, head: HTTPRequestHead, response: SgDataResponse) {
         var headers = response.headers
         var buffer: ByteBuffer?
         
@@ -172,7 +172,7 @@ final class HTTPHandler: ChannelInboundHandler {
             headers.add(name: "Content-Length", value: "\(body.count)")
         }
         
-        ctx.write(self.wrapOutboundOut(.head(httpResponseHead(request: request, status: response.code, headers: headers))), promise: nil)
+        ctx.write(self.wrapOutboundOut(.head(httpResponseHead(request: head, status: response.code, headers: headers))), promise: nil)
         if let buffer = buffer {
             ctx.write(self.wrapOutboundOut(.body(.byteBuffer(buffer))), promise: nil)
         }
@@ -180,7 +180,7 @@ final class HTTPHandler: ChannelInboundHandler {
         self.completeResponse(ctx, trailers: nil, promise: nil)
     }
     
-    private func sendFileResponse(ctx: ChannelHandlerContext, request: HTTPRequestHead, response: SgFileResponse) {
+    private func sendFileResponse(ctx: ChannelHandlerContext, head: HTTPRequestHead, response: SgFileResponse) {
         let fileHandle = self.fileIO.openFile(path: response.path, eventLoop: ctx.eventLoop)
         
         func responseHead(request: HTTPRequestHead, fileRegion region: FileRegion) -> HTTPResponseHead {
@@ -191,12 +191,12 @@ final class HTTPHandler: ChannelInboundHandler {
         }
         
         fileHandle.whenFailure {
-            self.sendErrorResponse(ctx: ctx, request: request, error: $0)
+            self.sendErrorResponse(ctx: ctx, head: head, error: $0)
         }
         
         fileHandle.whenSuccess { (file, region) in
             var responseStarted = false
-            let response = responseHead(request: request, fileRegion: region)
+            let response = responseHead(request: head, fileRegion: region)
             return self.fileIO.readChunked(fileRegion: region,
                                            chunkSize: 32 * 1024,
                                            allocator: ctx.channel.allocator,
@@ -212,7 +212,7 @@ final class HTTPHandler: ChannelInboundHandler {
                         return p.futureResult
                     }.thenIfError { error in
                         if !responseStarted {
-                            let response = httpResponseHead(request: request, status: .ok)
+                            let response = httpResponseHead(request: head, status: .ok)
                             ctx.write(self.wrapOutboundOut(.head(response)), promise: nil)
                             var buffer = ctx.channel.allocator.buffer(capacity: 100)
                             buffer.write(string: "fail: \(error)")
@@ -228,7 +228,7 @@ final class HTTPHandler: ChannelInboundHandler {
         }
     }
     
-    private func sendErrorResponse(ctx: ChannelHandlerContext, request: HTTPRequestHead, error: Error) {
+    private func sendErrorResponse(ctx: ChannelHandlerContext, head: HTTPRequestHead, error: Error) {
         var body = ctx.channel.allocator.buffer(capacity: 128)
         let response = { () -> HTTPResponseHead in
             switch error {
@@ -236,10 +236,10 @@ final class HTTPHandler: ChannelInboundHandler {
                 if let respBody = e.response.body {
                     body.write(bytes: respBody)
                 }
-                return httpResponseHead(request: request, status: e.response.code, headers: e.response.headers)
+                return httpResponseHead(request: head, status: e.response.code, headers: e.response.headers)
             default:
                 body.write(string: "Error: \(type(of: error)) error\r\n")
-                return httpResponseHead(request: request, status: .internalServerError)
+                return httpResponseHead(request: head, status: .internalServerError)
             }
         }()
         
@@ -260,7 +260,7 @@ final class HTTPHandler: ChannelInboundHandler {
         
         ctx.writeAndFlush(self.wrapOutboundOut(.end(trailers)), promise: promise)
         
-        self.parsedPath = nil
+        self.preparedRequest = nil
     }
 }
 

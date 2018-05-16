@@ -13,7 +13,7 @@ public struct SgRequest {
 }
 
 extension SgRequest {
-    static func from(parsedPath: ParsedPath, request: HTTPRequestHead, body: ByteBuffer?) -> SgRequest {
+    static func from(preparedRequest: PreparedRequest, head: HTTPRequestHead, body: ByteBuffer?) -> SgRequest {
         
         let data: Data?
         if let body = body {
@@ -24,12 +24,12 @@ extension SgRequest {
             data = nil
         }
         
-        return SgRequest(pattern: parsedPath.pattern,
-                         uri: request.uri,
-                         method: request.method,
-                         headers: request.headers,
-                         urlParams: parsedPath.urlParams,
-                         queryParams: parsedPath.queryParams,
+        return SgRequest(pattern: preparedRequest.pattern,
+                         uri: head.uri,
+                         method: head.method,
+                         headers: head.headers,
+                         urlParams: preparedRequest.urlParams,
+                         queryParams: preparedRequest.queryParams,
                          body: data)
     }
 }

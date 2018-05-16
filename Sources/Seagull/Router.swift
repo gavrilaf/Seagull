@@ -8,7 +8,7 @@ public enum RouterError: Error {
 
 public typealias StringDict = [String: String]
 
-public struct ParsedPath {
+public struct PreparedRequest {
     public let pattern: String
     public let method: HTTPMethod
     public let urlParams: StringDict
@@ -17,7 +17,7 @@ public struct ParsedPath {
     public let handler: RequestHandler
 }
 
-public typealias RouterResult = Result<ParsedPath, SgErrorResponse>
+public typealias RouterResult = Result<PreparedRequest, SgErrorResponse>
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -77,12 +77,12 @@ public final class Router {
         }
         
         if let pattern = current.pattern, let middleware = current.middleware, let handler = current.handler {
-            let p = ParsedPath(pattern: pattern,
-                               method: method,
-                               urlParams: urlParams,
-                               queryParams: [:],
-                               middleware: middleware,
-                               handler: handler)
+            let p = PreparedRequest(pattern: pattern,
+                                    method: method,
+                                    urlParams: urlParams,
+                                    queryParams: [:],
+                                    middleware: middleware,
+                                    handler: handler)
             
             return Result(value: p)
         }

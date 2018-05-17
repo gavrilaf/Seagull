@@ -7,9 +7,10 @@ public enum EngineError: Error {
 
 public class Engine {
     
-    public init(router: Router) {
+    public init(router: Router, logger: LogProtocol = DefaultLogger(), errorProvider: ErrorProvider = DefaultErrorProvider()) {
         self.router = router
-        self.logger = DefaultLogger()
+        self.logger = logger
+        self.errorProvider = errorProvider
     }
     
     public func run(host: String, port: Int) throws {
@@ -30,7 +31,10 @@ public class Engine {
                     guard let sself = self else {
                         fatalError("Seagull engine is nil")
                     }
-                    return channel.pipeline.add(handler: HTTPHandler(router: sself.router, fileIO: fileIO))
+                    return channel.pipeline.add(handler: HTTPHandler(router: sself.router,
+                                                                     fileIO: fileIO,
+                                                                     logger: sself.logger,
+                                                                     errorProvider: sself.errorProvider))
                 }
             }
             .childChannelOption(ChannelOptions.socket(IPPROTO_TCP, TCP_NODELAY), value: 1)
@@ -70,6 +74,7 @@ public class Engine {
     private let router: Router
     
     private let logger: LogProtocol
+    private let errorProvider: ErrorProvider
     
     private var threadGroup: MultiThreadedEventLoopGroup?
     private var channel: Channel?

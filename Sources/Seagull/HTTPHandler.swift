@@ -60,12 +60,16 @@ final class HTTPHandler: ChannelInboundHandler {
     
     private let fileIO: NonBlockingFileIO
     private let router: Router
+    private let logger: LogProtocol
+    private let errorProvider: ErrorProvider
     
     private var preparedRequest: PreparedRequest?
     
-    public init(router: Router, fileIO: NonBlockingFileIO) {
+    public init(router: Router, fileIO: NonBlockingFileIO, logger: LogProtocol, errorProvider: ErrorProvider) {
         self.router = router
         self.fileIO = fileIO
+        self.logger = logger
+        self.errorProvider = errorProvider
     }
     
     // MARK: -
@@ -127,10 +131,11 @@ final class HTTPHandler: ChannelInboundHandler {
     // MARK: -
     private func handlerReqPart(ctx: ChannelHandlerContext, reqPart: HTTPServerRequestPart) {
         switch reqPart {
-        case .head(let request):
-            self.savedRequestHead = request
-            self.keepAlive = request.isKeepAlive
+        case .head(let head):
+            self.savedRequestHead = head
+            self.keepAlive = head.isKeepAlive
             self.state.requestReceived()
+            
         case .body(var buf):
             if buf.readableBytes > 0 {
                 if self.savedBody == nil {
@@ -138,6 +143,7 @@ final class HTTPHandler: ChannelInboundHandler {
                 }
                 self.savedBody?.write(buffer: &buf)
             }
+            
         case .end:
             self.state.requestComplete()
             handleRequest(ctx: ctx)
@@ -186,7 +192,6 @@ final class HTTPHandler: ChannelInboundHandler {
         func responseHead(request: HTTPRequestHead, fileRegion region: FileRegion) -> HTTPResponseHead {
             var response = httpResponseHead(request: request, status: .ok)
             response.headers.add(name: "Content-Length", value: "\(region.endIndex)")
-            response.headers.add(name: "Content-Type", value: "text/plain; charset=utf-8")
             return response
         }
         
@@ -212,16 +217,9 @@ final class HTTPHandler: ChannelInboundHandler {
                         return p.futureResult
                     }.thenIfError { error in
                         if !responseStarted {
-                            let response = httpResponseHead(request: head, status: .ok)
-                            ctx.write(self.wrapOutboundOut(.head(response)), promise: nil)
-                            var buffer = ctx.channel.allocator.buffer(capacity: 100)
-                            buffer.write(string: "fail: \(error)")
-                            ctx.write(self.wrapOutboundOut(.body(.byteBuffer(buffer))), promise: nil)
-                            self.state.responseComplete()
-                            return ctx.writeAndFlush(self.wrapOutboundOut(.end(nil)))
-                        } else {
-                            return ctx.close()
+                            self.sendErrorResponse(ctx: ctx, head: head, error: error)
                         }
+                        return ctx.close()
                     }.whenComplete {
                         _ = try? file.close()
                 }
@@ -230,20 +228,16 @@ final class HTTPHandler: ChannelInboundHandler {
     
     private func sendErrorResponse(ctx: ChannelHandlerContext, head: HTTPRequestHead, error: Error) {
         var body = ctx.channel.allocator.buffer(capacity: 128)
-        let response = { () -> HTTPResponseHead in
-            switch error {
-            case let e as SgErrorResponse:
-                if let respBody = e.response.body {
-                    body.write(bytes: respBody)
-                }
-                return httpResponseHead(request: head, status: e.response.code, headers: e.response.headers)
-            default:
-                body.write(string: "Error: \(type(of: error)) error\r\n")
-                return httpResponseHead(request: head, status: .internalServerError)
-            }
-        }()
         
-        ctx.write(self.wrapOutboundOut(.head(response)), promise: nil)
+        let errResponse = errorProvider.convert(error: error)
+        
+        if let respBody = errResponse.response.body {
+            body.write(bytes: respBody)
+        }
+    
+        let respHead = httpResponseHead(request: head, status: errResponse.response.code, headers: errResponse.response.headers)
+        
+        ctx.write(self.wrapOutboundOut(.head(respHead)), promise: nil)
         ctx.write(self.wrapOutboundOut(.body(.byteBuffer(body))), promise: nil)
         ctx.writeAndFlush(self.wrapOutboundOut(.end(nil)), promise: nil)
         

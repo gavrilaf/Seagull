@@ -8,17 +8,19 @@ public protocol LogProtocol {
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-final class DefaultLogger: LogProtocol  {
+public final class DefaultLogger: LogProtocol  {
     
-    func info(_ msg: String, _ params: Any...) {
+    public init() {}
+    
+    public func info(_ msg: String, _ params: Any...) {
         printMsg(String(format: msg, params), prefix: Prefix.info)
     }
     
-    func warning(_ msg: String, _ params: Any...) {
+    public func warning(_ msg: String, _ params: Any...) {
         printMsg(String(format: msg, params), prefix: Prefix.warning)
     }
     
-    func error(_ msg: String, _ params: Any...) {
+    public func error(_ msg: String, _ params: Any...) {
         printMsg(String(format: msg, params), prefix: Prefix.error)
     }
     

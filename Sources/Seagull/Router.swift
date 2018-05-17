@@ -4,6 +4,7 @@ import Result
 
 public enum RouterError: Error {
     case onlyOneWildAllowed
+    case notFound(method: HTTPMethod, uri: String)
 }
 
 public typealias StringDict = [String: String]
@@ -17,7 +18,7 @@ public struct PreparedRequest {
     public let handler: RequestHandler
 }
 
-public typealias RouterResult = Result<PreparedRequest, SgErrorResponse>
+public typealias RouterResult = Result<PreparedRequest, RouterError>
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -72,7 +73,7 @@ public final class Router {
                 urlParams[wild.name] = s
                 current = wild
             } else {
-                return Result(error: notFoundError(method: method, uri: uri))
+                return Result(error: RouterError.notFound(method: method, uri: uri))
             }
         }
         
@@ -87,14 +88,10 @@ public final class Router {
             return Result(value: p)
         }
         
-        return Result(error: notFoundError(method: method, uri: uri))
+        return Result(error: RouterError.notFound(method: method, uri: uri))
     }
     
     // MARK: -
-    
-    func notFoundError(method: HTTPMethod, uri: String) -> SgErrorResponse {
-        return SgErrorResponse.from(string: "Handler for \(method.str) : \(uri) not found", code: .notFound)
-    }
     
     private final class Node {
         init(name: String) {

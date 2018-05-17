@@ -131,6 +131,75 @@ class EngineTests: XCTestCase {
         
         accumulation.syncWaitForCompletion()
     }
+    
+    func testUnknownOperation() {
+        var expectedHeaders = HTTPHeaders()
+        expectedHeaders.add(name: "Connection", value: "close")
+        expectedHeaders.add(name: "Content-Length", value: "17")
+        expectedHeaders.add(name: "Content-Type", value: "text/plain")
+        
+        let accumulation = HTTPClientResponsePartAssertHandler(HTTPVersion(major: 1, minor: 1), .notImplemented, expectedHeaders, "Unknown operation")
+        
+        let clientChannel = try! ClientBootstrap(group: self.clientGroup)
+            .channelInitializer { channel in
+                channel.pipeline.addHTTPClientHandlers().then {
+                    channel.pipeline.add(handler: accumulation)
+                }
+            }
+            .connect(to: self.server.engine.localAddress!)
+            .wait()
+        
+        defer {
+            XCTAssertNoThrow(try clientChannel.syncCloseAcceptingAlreadyClosed())
+        }
+        
+        var head = HTTPRequestHead(version: HTTPVersion(major: 1, minor: 1), method: .POST, uri: "/op")
+        head.headers.add(name: "Connection", value: "close")
+        
+        clientChannel.write(NIOAny(HTTPClientRequestPart.head(head)), promise: nil)
+        
+        let encoder = JSONEncoder()
+        let opObj = OpRequest(a: 2, b: 3, operation: "//")
+        let data = try! encoder.encode(opObj)
+        
+        var buffer = clientChannel.allocator.buffer(capacity: data.count)
+        buffer.write(bytes: data)
+        
+        clientChannel.write(NIOAny(HTTPClientRequestPart.body(IOData.byteBuffer(buffer))), promise: nil)
+        try! clientChannel.writeAndFlush(NIOAny(HTTPClientRequestPart.end(nil))).wait()
+        
+        accumulation.syncWaitForCompletion()
+    }
+
+    func test404() {
+        var expectedHeaders = HTTPHeaders()
+        expectedHeaders.add(name: "Connection", value: "close")
+        expectedHeaders.add(name: "Content-Length", value: "30")
+        expectedHeaders.add(name: "Content-Type", value: "text/plain")
+        
+        let accumulation = HTTPClientResponsePartAssertHandler(HTTPVersion(major: 1, minor: 1), .notFound, expectedHeaders, "Handler for GET /404 not found")
+        
+        let clientChannel = try! ClientBootstrap(group: self.clientGroup)
+            .channelInitializer { channel in
+                channel.pipeline.addHTTPClientHandlers().then {
+                    channel.pipeline.add(handler: accumulation)
+                }
+            }
+            .connect(to: self.server.engine.localAddress!)
+            .wait()
+        
+        defer {
+            XCTAssertNoThrow(try clientChannel.syncCloseAcceptingAlreadyClosed())
+        }
+        
+        var head = HTTPRequestHead(version: HTTPVersion(major: 1, minor: 1), method: .GET, uri: "/404")
+        head.headers.add(name: "Connection", value: "close")
+        
+        clientChannel.write(NIOAny(HTTPClientRequestPart.head(head)), promise: nil)
+        try! clientChannel.writeAndFlush(NIOAny(HTTPClientRequestPart.end(nil))).wait()
+        
+        accumulation.syncWaitForCompletion()
+    }
 
 
     static var allTests = [

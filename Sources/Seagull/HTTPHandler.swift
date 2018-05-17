@@ -227,18 +227,24 @@ final class HTTPHandler: ChannelInboundHandler {
     }
     
     private func sendErrorResponse(ctx: ChannelHandlerContext, head: HTTPRequestHead, error: Error) {
-        var body = ctx.channel.allocator.buffer(capacity: 128)
+        let response = errorProvider.convert(error: error).response
         
-        let errResponse = errorProvider.convert(error: error)
+        var headers = response.headers
+        var buffer: ByteBuffer?
         
-        if let respBody = errResponse.response.body {
-            body.write(bytes: respBody)
+        if let body = response.body {
+            buffer = ctx.channel.allocator.buffer(capacity: body.count)
+            buffer?.write(bytes: body)
+            headers.add(name: "Content-Length", value: "\(body.count)")
         }
-    
-        let respHead = httpResponseHead(request: head, status: errResponse.response.code, headers: errResponse.response.headers)
+        
+        
+        let respHead = httpResponseHead(request: head, status: response.code, headers: headers)
         
         ctx.write(self.wrapOutboundOut(.head(respHead)), promise: nil)
-        ctx.write(self.wrapOutboundOut(.body(.byteBuffer(body))), promise: nil)
+        if let buffer = buffer {
+            ctx.write(self.wrapOutboundOut(.body(.byteBuffer(buffer))), promise: nil)
+        }
         ctx.writeAndFlush(self.wrapOutboundOut(.end(nil)), promise: nil)
         
         ctx.channel.close(promise: nil)

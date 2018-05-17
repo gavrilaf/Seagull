@@ -8,6 +8,8 @@ public protocol ErrorProvider {
 extension ErrorProvider {
     func convert(error: Error) -> SgErrorResponse {
         switch error {
+        case let errResp as SgErrorResponse:
+            return errResp
         case RouterError.notFound(let method, let uri):
             return notFoundError(method: method, uri: uri)
         default:

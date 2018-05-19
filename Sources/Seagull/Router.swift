@@ -27,6 +27,10 @@ public final class Router {
         root = Node(name: "*")
     }
     
+    public func group(relativePath: String, middleware: MiddlewareChain = []) -> RouterGroup {
+        return RouterGroup(router: self, relativePath: relativePath, middleware: middleware)
+    }
+    
     public func add(method: HTTPMethod, relativePath: String, handler: @escaping RequestHandler, middleware: MiddlewareChain = []) throws {
         var current = root
         let components = PathBuilder(method: method, uri: relativePath).pathComponents

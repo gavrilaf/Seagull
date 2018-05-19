@@ -6,7 +6,14 @@ do {
     
     var router = Router()
     
-    router.group(relativePath: <#T##String#>)
+    try! router.group("/auth") {
+        try $0.PUT("/register", handler: Handlers.register)
+        try $0.POST("/login", handler: Handlers.login)
+    }
+    
+    try! router.group("/profile") {
+        try $0.GET("/:id", handler: Handlers.getProfile)
+    }
     
     let engine = Engine(router: router)
     try engine.run(host: "::1", port: 8010)

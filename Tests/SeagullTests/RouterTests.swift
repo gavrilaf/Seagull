@@ -40,6 +40,25 @@ class RouterTests: XCTestCase {
         checkRoute(router.lookup(method: .GET, uri: "/auth/session/12"), "/auth/session/:id", .GET, ["id": "12"])
         checkRoute(router.lookup(method: .GET, uri: "/a/b/c/d/e/f"), "/:a/:b/:c/:d/:e/:f", .GET, ["a": "a", "b": "b", "c": "c", "d": "d", "e": "e", "f": "f"])
     }
+    
+    func testGroup() {
+        try! router.group("/auth") {
+            try $0.PUT("/register", handler: self.emptyHandler)
+            try $0.POST("/login", handler: self.emptyHandler)
+        }
+        
+        try! router.group("/profile") {
+            try $0.GET("/:id", handler: self.emptyHandler)
+            try $0.GET("/:id/photo", handler: self.emptyHandler)
+            try $0.POST("/:id", handler: self.emptyHandler)
+        }
+        
+        checkRoute(router.lookup(method: .PUT, uri: "/auth/register"), "/auth/register", .PUT)
+        checkRoute(router.lookup(method: .POST, uri: "/auth/login"), "/auth/login", .POST)
+        checkRoute(router.lookup(method: .GET, uri: "/profile/123"), "/profile/:id", .GET, ["id": "123"])
+        checkRoute(router.lookup(method: .GET, uri: "/profile/321/photo"), "/profile/:id/photo", .GET, ["id": "321"])
+        checkRoute(router.lookup(method: .POST, uri: "/profile/9"), "/profile/:id", .POST, ["id": "9"])
+    }
 
     // MARK: -
     func checkRoute(_ res: RouterResult, _ pattern: String, _ method: HTTPMethod, _ uriP: StringDict = [:], _ queryP: StringDict = [:]) {

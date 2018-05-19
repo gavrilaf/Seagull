@@ -27,8 +27,11 @@ public final class Router {
         root = Node(name: "*")
     }
     
-    public func group(relativePath: String, middleware: MiddlewareChain = []) -> RouterGroup {
-        return RouterGroup(router: self, relativePath: relativePath, middleware: middleware)
+    @discardableResult
+    public func group(_ relativePath: String, middleware: MiddlewareChain = [], initBlock: ((RouterGroup) throws -> Void)? = nil) throws -> RouterGroup {
+        let group = RouterGroup(router: self, relativePath: relativePath, middleware: middleware)
+        try initBlock?(group)
+        return group
     }
     
     public func add(method: HTTPMethod, relativePath: String, handler: @escaping RequestHandler, middleware: MiddlewareChain = []) throws {

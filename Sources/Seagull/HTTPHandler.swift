@@ -92,6 +92,8 @@ final class HTTPHandler: ChannelInboundHandler {
                 self.keepAlive = head.isKeepAlive
                 self.state.requestReceived()
                 sendErrorResponse(ctx: ctx, head: head, error: err)
+                
+                // TODO: Add log here
             }
             
         case .body:
@@ -157,6 +159,8 @@ final class HTTPHandler: ChannelInboundHandler {
         
         let sgRequest = SgRequest.from(preparedRequest: preparedRequest, head: head, body: savedBody)
         let result = preparedRequest.handler(sgRequest, SgRequestContext(logger: logger, errorProvider: errorProvider))
+        
+        logRequestResult(result)
         
         switch result {
         case .data(let response):
@@ -261,6 +265,17 @@ final class HTTPHandler: ChannelInboundHandler {
         ctx.writeAndFlush(self.wrapOutboundOut(.end(trailers)), promise: promise)
         
         self.preparedRequest = nil
+    }
+    
+    // MARK: -
+    private func logRequestResult(_ result: SgResult) {
+        guard let request = preparedRequest else { return }
+        let responseCode = result.httpCode
+        if responseCode.code < 400 {
+            logger.info("\(request.method) \(request.uri), \(responseCode)")
+        } else {
+            logger.error("\(request.method) \(request.uri), \(result)")
+        }
     }
 }
 

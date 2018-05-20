@@ -10,6 +10,7 @@ public enum RouterError: Error {
 public typealias StringDict = [String: String]
 
 public struct PreparedRequest {
+    public let uri: String
     public let pattern: String
     public let method: HTTPMethod
     public let urlParams: StringDict
@@ -85,7 +86,8 @@ public final class Router {
         }
         
         if let pattern = current.pattern, let middleware = current.middleware, let handler = current.handler {
-            let p = PreparedRequest(pattern: pattern,
+            let p = PreparedRequest(uri: uri,
+                                    pattern: pattern,
                                     method: method,
                                     urlParams: urlParams,
                                     queryParams: [:],

@@ -37,7 +37,13 @@ extension SgRequest {
 public struct SgRequestContext {
     public var userInfo: [String: Any]
     
-    init() {
+    public let logger: LogProtocol
+    public let errorProvider: ErrorProvider
+    
+    init(logger: LogProtocol, errorProvider: ErrorProvider) {
+        self.logger = logger
+        self.errorProvider = errorProvider
+        
         userInfo = [:]
     }
 }

@@ -36,12 +36,6 @@ enum APIError: Error {
     case invalidToken
 }
 
-enum DataError: Error {
-    case emptyBody
-    case invalidJson(Error)
-}
-
-
 // MARK: -
 
 class Db {
@@ -50,26 +44,26 @@ class Db {
     
     // MARK: -
     
-    func register(_ user: LoginDTO) -> Result<AuthTokenDTO, APIError> {
-        return lock.withLock { () -> Result<AuthTokenDTO, APIError> in
+    func register(_ user: LoginDTO) throws -> AuthTokenDTO {
+        return try lock.withLock {
             if self.users[user.username] != nil {
-                return Result(error: APIError.alreadyRegistered(user.username))
+                throw APIError.alreadyRegistered(user.username)
             }
             
             self.users[user.username] = user.password
             self.profiles[user.username] = ProfileDTO(firstName: "", lastName: "", country: "UA")
             
-            return Result(value: self.doLogin(username: user.username))
+            return self.doLogin(username: user.username)
         }
     }
     
-    func login(_ user: LoginDTO) -> Result<AuthTokenDTO, APIError> {
-        return lock.withLock { () -> Result<AuthTokenDTO, APIError> in
+    func login(_ user: LoginDTO) throws -> AuthTokenDTO {
+        return try lock.withLock {
             if self.users[user.username] != user.password {
-                return Result(error: APIError.userNotFound)
+                throw APIError.userNotFound
             }
             
-            return Result(value: self.doLogin(username: user.username))
+            return self.doLogin(username: user.username)
         }
     }
     
@@ -79,10 +73,8 @@ class Db {
     // MARK: -
     private func doLogin(username: String) -> AuthTokenDTO {
         let token = "token-\(self.counter)"
-        
         sessions[token] = username
         counter += 1
-        
         return AuthTokenDTO(token: token)
     }
     
@@ -97,55 +89,35 @@ class Db {
 
 // MARK: -
 
-func decode<T: Decodable>(_ t: T.Type, request: SgRequest) throws -> T {
-    guard let body = request.body else {
-        throw DataError.emptyBody
-    }
-    
-    do {
-        let decoder = JSONDecoder()
-        return try decoder.decode(t, from: body)
-    } catch let e {
-        throw DataError.invalidJson(e)
-    }
-}
-
-// MARK: -
-
 struct Handlers {
     
-    static func register(_ request: SgRequest, _ context: SgRequestContext) -> SgResult {
+    static func register(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
         do {
-            let dto = try decode(LoginDTO.self, request: request)
-            
-            switch Db.inst.register(dto) {
-            case .success(let token):
-                return SgResult.data(response: try SgDataResponse.from(json: token))
-            case .failure(let error):
-                throw error
-            }
-        } catch let e {
-            return SgResult.error(response: SgErrorResponse.from(error: e))
+            let loginDTO = try ctx.decode(LoginDTO.self, request: request)
+            let token = try Db.inst.register(loginDTO)
+            return ctx.encode(json: token)
+        } catch let err {
+            return SgResult.error(response: ctx.errorProvider.generalError(err))
         }
     }
     
-    static func login(_ request: SgRequest, _ context: SgRequestContext) -> SgResult {
+    static func login(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
         return SgResult.error(response: SgErrorResponse.from(string: "Not implemented", code: .internalServerError))
     }
     
-    static func getProfile(_ request: SgRequest, _ context: SgRequestContext) -> SgResult {
+    static func getProfile(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
         return SgResult.error(response: SgErrorResponse.from(string: "Not implemented", code: .internalServerError))
     }
     
-    static func updateProfile(_ request: SgRequest, _ context: SgRequestContext) -> SgResult {
+    static func updateProfile(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
         return SgResult.error(response: SgErrorResponse.from(string: "Not implemented", code: .internalServerError))
     }
     
-    static func deleteProfile(_ request: SgRequest, _ context: SgRequestContext) -> SgResult {
+    static func deleteProfile(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
         return SgResult.error(response: SgErrorResponse.from(string: "Not implemented", code: .internalServerError))
     }
     
-    static func logout(_ request: SgRequest, _ context: SgRequestContext) -> SgResult {
+    static func logout(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
         return SgResult.error(response: SgErrorResponse.from(string: "Not implemented", code: .internalServerError))
     }
 }

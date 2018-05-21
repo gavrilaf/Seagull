@@ -14,7 +14,6 @@ public struct SgRequest {
 
 extension SgRequest {
     static func from(preparedRequest: PreparedRequest, head: HTTPRequestHead, body: ByteBuffer?) -> SgRequest {
-        
         let data: Data?
         if let body = body {
             data = body.withUnsafeReadableBytes { (bufPointer) -> Data in
@@ -31,20 +30,6 @@ extension SgRequest {
                          urlParams: preparedRequest.urlParams,
                          queryParams: preparedRequest.queryParams,
                          body: data)
-    }
-}
-
-public struct SgRequestContext {
-    public var userInfo: [String: Any]
-    
-    public let logger: LogProtocol
-    public let errorProvider: ErrorProvider
-    
-    init(logger: LogProtocol, errorProvider: ErrorProvider) {
-        self.logger = logger
-        self.errorProvider = errorProvider
-        
-        userInfo = [:]
     }
 }
 

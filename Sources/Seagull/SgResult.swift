@@ -4,8 +4,11 @@ public enum SgResult {
     case data(response: SgDataResponse)
     case file(response: SgFileResponse)
     case error(response: SgErrorResponse)
+}
+
+extension SgResult: CustomStringConvertible {
     
-    var httpCode: HTTPResponseStatus {
+    public var httpCode: HTTPResponseStatus {
         switch self {
         case .data(let r):
             return r.code
@@ -15,9 +18,7 @@ public enum SgResult {
             return r.response.code
         }
     }
-}
-
-extension SgResult: CustomStringConvertible {
+    
     public var description: String {
         switch self {
         case .data(let r):

@@ -12,6 +12,12 @@ extension ErrorProvider {
             return errResp
         case RouterError.notFound(let method, let uri):
             return notFoundError(method: method, uri: uri)
+        /*case let e as IOError where e.errnoCode == ENOENT:
+            errTxt = "IOError (not found)"
+            errCode = .notFound
+        case let e as IOError:
+            errTxt = "IOError \(e.description)"
+            errCode = .notFound*/
         default:
             return generalError(error)
         }

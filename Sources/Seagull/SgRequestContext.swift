@@ -16,22 +16,18 @@ public struct SgRequestContext {
     }
 }
 
-enum ConvertError: Error {
-    case emptyBody
-    case decodeErr(Error)
-    case encodeErr(Error)
-}
+// MARK: -
 
 extension SgRequestContext {
     public func decode<T: Decodable>(_ t: T.Type, request: SgRequest) throws -> T {
         guard let body = request.body else {
-            throw ConvertError.emptyBody
+            throw DataError.emptyBody
         }
         
         do {
             return try JSONDecoder().decode(T.self, from: body)
         } catch let err {
-            throw ConvertError.decodeErr(err)
+            throw DataError.decodeErr(err)
         }
     }
     
@@ -39,7 +35,7 @@ extension SgRequestContext {
         do {
             return SgResult.data(response: try SgDataResponse.from(json: json, code: code, headers: headers))
         } catch let err {
-            return SgResult.error(response: errorProvider.generalError(ConvertError.decodeErr(err)))
+            return SgResult.error(response: errorProvider.convert(error: DataError.decodeErr(err)))
         }
     }
     
@@ -47,7 +43,7 @@ extension SgRequestContext {
         do {
             return SgResult.data(response: try SgDataResponse.from(dict: dict, code: code, headers: headers))
         } catch let err {
-            return SgResult.error(response: errorProvider.generalError(ConvertError.decodeErr(err)))
+            return SgResult.error(response: errorProvider.convert(error: DataError.encodeErr(err)))
         }
     }
 }

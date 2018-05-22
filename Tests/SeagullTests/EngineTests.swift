@@ -40,7 +40,7 @@ class EngineTests: XCTestCase {
                 case "+":
                     return SgResult.data(response: try! SgDataResponse.from(json: OpResult(result: 10, operation: "+")))
                 default:
-                    return SgResult.error(response: SgErrorResponse.from(string: "Unknown operation", code: .notImplemented))
+                    return SgResult.error(response: SgErrorResponse.appError(string: "Unknown operation", code: .notImplemented))
                 }
             })
             

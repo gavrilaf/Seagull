@@ -102,22 +102,22 @@ struct Handlers {
     }
     
     static func login(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
-        return SgResult.error(response: SgErrorResponse.from(string: "Not implemented", code: .internalServerError))
+        return SgResult.error(response: SgErrorResponse.appError(string: "Not implemented", code: .internalServerError))
     }
     
     static func getProfile(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
-        return SgResult.error(response: SgErrorResponse.from(string: "Not implemented", code: .internalServerError))
+        return SgResult.error(response: SgErrorResponse.appError(string: "Not implemented", code: .internalServerError))
     }
     
     static func updateProfile(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
-        return SgResult.error(response: SgErrorResponse.from(string: "Not implemented", code: .internalServerError))
+        return SgResult.error(response: SgErrorResponse.appError(string: "Not implemented", code: .internalServerError))
     }
     
     static func deleteProfile(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
-        return SgResult.error(response: SgErrorResponse.from(string: "Not implemented", code: .internalServerError))
+        return SgResult.error(response: SgErrorResponse.appError(string: "Not implemented", code: .internalServerError))
     }
     
     static func logout(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
-        return SgResult.error(response: SgErrorResponse.from(string: "Not implemented", code: .internalServerError))
+        return SgResult.error(response: SgErrorResponse.appError(string: "Not implemented", code: .internalServerError))
     }
 }

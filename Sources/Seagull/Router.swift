@@ -2,11 +2,6 @@ import Foundation
 import NIOHTTP1
 import Result
 
-public enum RouterError: Error {
-    case onlyOneWildAllowed
-    case notFound(method: HTTPMethod, uri: String)
-}
-
 public typealias StringDict = [String: String]
 
 public struct PreparedRequest {

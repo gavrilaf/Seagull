@@ -30,10 +30,21 @@ struct ProfileDTO: Codable {
     let country: String
 }
 
-enum APIError: Error {
+public enum AppLogicError: LocalizedError {
     case alreadyRegistered(String)
     case userNotFound
     case invalidToken
+    
+    public var errorDescription: String? {
+        switch self {
+        case .alreadyRegistered(let user):
+            return "alreadyRegistered(\(user))"
+        case .userNotFound:
+            return "userNotFound"
+        case .invalidToken:
+            return "invalidToken"
+        }
+    }
 }
 
 // MARK: -
@@ -47,7 +58,7 @@ class Db {
     func register(_ user: LoginDTO) throws -> AuthTokenDTO {
         return try lock.withLock {
             if self.users[user.username] != nil {
-                throw APIError.alreadyRegistered(user.username)
+                throw AppLogicError.alreadyRegistered(user.username)
             }
             
             self.users[user.username] = user.password
@@ -60,7 +71,7 @@ class Db {
     func login(_ user: LoginDTO) throws -> AuthTokenDTO {
         return try lock.withLock {
             if self.users[user.username] != user.password {
-                throw APIError.userNotFound
+                throw AppLogicError.userNotFound
             }
             
             return self.doLogin(username: user.username)
@@ -102,7 +113,13 @@ struct Handlers {
     }
     
     static func login(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
-        return SgResult.error(response: SgErrorResponse.appError(string: "Not implemented", code: .internalServerError))
+        do {
+            let loginDTO = try ctx.decode(LoginDTO.self, request: request)
+            let token = try Db.inst.login(loginDTO)
+            return ctx.encode(json: token)
+        } catch let err {
+            return SgResult.error(response: ctx.errorProvider.generalError(err))
+        }
     }
     
     static func getProfile(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {

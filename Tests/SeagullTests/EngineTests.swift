@@ -201,9 +201,52 @@ class EngineTests: XCTestCase {
         accumulation.syncWaitForCompletion()
     }
 
+    func testSequenceCalls() {
+        func _send() {
+            var expectedHeaders = HTTPHeaders()
+            expectedHeaders.add(name: "Connection", value: "close")
+            expectedHeaders.add(name: "Content-Length", value: "29")
+            expectedHeaders.add(name: "Content-Type", value: "application/json")
+        
+            let jsonStr = "{\"result\":10,\"operation\":\"+\"}"
+            let accumulation = HTTPClientResponsePartAssertHandler(HTTPVersion(major: 1, minor: 1), .ok, expectedHeaders, jsonStr)
+        
+            let clientChannel = try! ClientBootstrap(group: self.clientGroup)
+                .channelInitializer { channel in
+                    channel.pipeline.addHTTPClientHandlers().then {
+                        channel.pipeline.add(handler: accumulation)
+                    }
+                }
+                .connect(to: self.server.engine.localAddress!)
+                .wait()
+        
+            defer { XCTAssertNoThrow(try clientChannel.syncCloseAcceptingAlreadyClosed()) }
+        
+            var head = HTTPRequestHead(version: HTTPVersion(major: 1, minor: 1), method: .POST, uri: "/op")
+            head.headers.add(name: "Connection", value: "close")
+            let encoder = JSONEncoder()
+            let opObj = OpRequest(a: 2, b: 3, operation: "+")
+            let data = try! encoder.encode(opObj)
+        
+            var buffer = clientChannel.allocator.buffer(capacity: data.count)
+            buffer.write(bytes: data)
+        
+            clientChannel.write(NIOAny(HTTPClientRequestPart.head(head)), promise: nil)
+            clientChannel.write(NIOAny(HTTPClientRequestPart.body(IOData.byteBuffer(buffer))), promise: nil)
+            try! clientChannel.writeAndFlush(NIOAny(HTTPClientRequestPart.end(nil))).wait()
+            accumulation.syncWaitForCompletion()
+        }
+        
+        _send()
+        _send()
+        _send()
+    }
 
     static var allTests = [
         ("testHelloWord", testHelloWord),
-        ("testSuccessOperation", testSuccessOperation)
+        ("testSuccessOperation", testSuccessOperation),
+        ("testUnknownOperation", testUnknownOperation),
+        ("test404", test404),
+        ("testSequenceCalls", testSequenceCalls)
     ]
 }

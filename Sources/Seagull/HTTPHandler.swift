@@ -70,6 +70,12 @@ final class HTTPHandler: ChannelInboundHandler {
         self.fileIO = fileIO
         self.logger = logger
         self.errorProvider = errorProvider
+        
+        logger.info("HTTPHandler created")
+    }
+    
+    deinit {
+        logger.info("HTTPHandler deleted")
     }
     
     // MARK: -

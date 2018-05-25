@@ -4,29 +4,56 @@ import NIOHTTP1
 
 // MARK: -
 
-public protocol SgErrorProtocol: Error {}
-
-public enum RouterError: SgErrorProtocol {
+public enum RouterError: LocalizedError {
     case onlyOneWildAllowed
     case notFound(method: HTTPMethod, uri: String)
+    
+    public var errorDescription: String? {
+        switch self {
+        case .onlyOneWildAllowed:
+            return "RouterError.onlyOneWildAllowed"
+        case .notFound(let method, let uri):
+            return "RouterError.notFound(\(method), \(uri))"
+        }
+    }
 }
 
-public enum DataError: SgErrorProtocol {
+public enum DataError: LocalizedError {
     case emptyBody
     case decodeErr(Error)
     case encodeErr(Error)
+    
+    public var errorDescription: String? {
+        switch self {
+        case .emptyBody:
+            return "DataError.emptyBody"
+        case .decodeErr(let err):
+            return "DataError.decodeErr(\(err))"
+        case .encodeErr(let err):
+            return "DataError.encodeErr(\(err))"
+        }
+    }
 }
 
-public enum AppCreatedError: SgErrorProtocol {
+public enum AppCreatedError: LocalizedError {
     case textErr(String)
     case jsonErr
+    
+    public var errorDescription: String? {
+        switch self {
+        case .textErr(let s):
+            return "AppCreatedError.textErr(\(s))"
+        case .jsonErr:
+            return "AppCreatedError.jsonErr"
+        }
+    }
 }
 
 // MARK: -
 
 public struct SgErrorResponse: Error {
     public let response: SgDataResponse
-    public let error: SgErrorProtocol
+    public let error: Error
 }
 
 extension SgErrorResponse {

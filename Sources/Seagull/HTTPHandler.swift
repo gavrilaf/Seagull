@@ -270,6 +270,7 @@ final class HTTPHandler: ChannelInboundHandler {
         
         ctx.writeAndFlush(self.wrapOutboundOut(.end(trailers)), promise: promise)
         
+        self.savedBody = nil
         self.preparedRequest = nil
     }
     

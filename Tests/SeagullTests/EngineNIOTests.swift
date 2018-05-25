@@ -56,10 +56,10 @@ class EngineNIOTests: XCTestCase {
     func testSuccessOperation() {
         var expectedHeaders = HTTPHeaders()
         expectedHeaders.add(name: "Connection", value: "close")
-        expectedHeaders.add(name: "Content-Length", value: "29")
+        expectedHeaders.add(name: "Content-Length", value: "28")
         expectedHeaders.add(name: "Content-Type", value: "application/json")
         
-        let jsonStr = "{\"result\":10,\"operation\":\"+\"}"
+        let jsonStr = "{\"result\":5,\"operation\":\"+\"}"
         let accumulation = HTTPClientResponsePartAssertHandler(HTTPVersion(major: 1, minor: 1), .ok, expectedHeaders, jsonStr)
         
         let clientChannel = try! ClientBootstrap(group: self.clientGroup)
@@ -166,10 +166,10 @@ class EngineNIOTests: XCTestCase {
         func _send() {
             var expectedHeaders = HTTPHeaders()
             expectedHeaders.add(name: "Connection", value: "close")
-            expectedHeaders.add(name: "Content-Length", value: "29")
+            expectedHeaders.add(name: "Content-Length", value: "28")
             expectedHeaders.add(name: "Content-Type", value: "application/json")
         
-            let jsonStr = "{\"result\":10,\"operation\":\"+\"}"
+            let jsonStr = "{\"result\":7,\"operation\":\"+\"}"
             let accumulation = HTTPClientResponsePartAssertHandler(HTTPVersion(major: 1, minor: 1), .ok, expectedHeaders, jsonStr)
         
             let clientChannel = try! ClientBootstrap(group: self.clientGroup)
@@ -186,7 +186,7 @@ class EngineNIOTests: XCTestCase {
             var head = HTTPRequestHead(version: HTTPVersion(major: 1, minor: 1), method: .POST, uri: "/op")
             head.headers.add(name: "Connection", value: "close")
             let encoder = JSONEncoder()
-            let opObj = OpRequest(a: 2, b: 3, operation: "+")
+            let opObj = OpRequest(a: 4, b: 3, operation: "+")
             let data = try! encoder.encode(opObj)
         
             var buffer = clientChannel.allocator.buffer(capacity: data.count)

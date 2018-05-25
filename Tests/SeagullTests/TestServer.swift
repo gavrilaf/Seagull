@@ -7,7 +7,7 @@ struct OpRequest: Codable {
     let operation: String
 }
 
-struct OpResult: Codable {
+struct OpResult: Codable, Equatable {
     let result: Int
     let operation: String
 }
@@ -28,15 +28,17 @@ class TestWebServer {
             return SgResult.data(response: SgDataResponse.from(string: "Hello world!"))
         })
         
-        try router.add(method: .POST, relativePath: "/op", handler: { (req, _) -> SgResult in
-            let decoder = JSONDecoder()
-            let op = try! decoder.decode(OpRequest.self, from: req.body!)
-            
-            switch op.operation {
-            case "+":
-                return SgResult.data(response: try! SgDataResponse.from(json: OpResult(result: 10, operation: "+")))
-            default:
-                return SgResult.error(response: SgErrorResponse.appError(string: "Unknown operation", code: .notImplemented))
+        try router.add(method: .POST, relativePath: "/op", handler: { (req, ctx) -> SgResult in
+            do {
+                let op = try ctx.decode(OpRequest.self, request: req)
+                
+                if op.operation == "+" {
+                    return ctx.encode(json: OpResult(result: op.a + op.b, operation: "+"))
+                } else {
+                    return SgResult.error(response: SgErrorResponse.appError(string: "Unknown operation", code: .notImplemented))
+                }
+            } catch let err {
+                return SgResult.error(response: ctx.errorProvider.generalError(err))
             }
         })
         

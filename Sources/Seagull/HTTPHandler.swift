@@ -158,7 +158,7 @@ final class HTTPHandler: ChannelInboundHandler {
         }
         
         let sgRequest = SgRequest.from(preparedRequest: preparedRequest, head: head, body: savedBody)
-        let result = preparedRequest.handler(sgRequest, SgRequestContext(logger: logger, errorProvider: errorProvider))
+        let result = preparedRequest.handle(request: sgRequest, ctx: SgRequestContext(logger: logger, errorProvider: errorProvider))
         
         logRequestResult(result)
         

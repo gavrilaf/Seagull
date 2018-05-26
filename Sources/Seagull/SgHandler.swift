@@ -8,6 +8,8 @@ public typealias MiddlewareResult = Result<SgRequestContext, SgErrorResponse>
 public typealias MiddlewareHandler = (SgRequest, SgRequestContext) -> MiddlewareResult
 public typealias MiddlewareChain = [MiddlewareHandler]
 
+// MARK: -
+
 extension Array where Element == MiddlewareHandler {
     func processMiddleware(request: SgRequest, context: SgRequestContext) -> MiddlewareResult {
         var currentContext = context
@@ -24,5 +26,14 @@ extension Array where Element == MiddlewareHandler {
     }
 }
 
-
+extension PreparedRequest {
+    func handle(request: SgRequest, ctx: SgRequestContext) -> SgResult {
+        switch self.middleware.processMiddleware(request: request, context: ctx) {
+        case .success(let ctx):
+            return self.handler(request, ctx)
+        case .failure(let err):
+            return SgResult.error(response: err)
+        }
+    }
+}
 

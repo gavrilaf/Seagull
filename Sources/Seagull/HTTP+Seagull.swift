@@ -11,7 +11,7 @@ public struct Headers {
 ////////////////////////////////////////////////////////////////////////////////////////
 
 extension HTTPMethod {
-    var str: String {
+    public var str: String {
         switch self {
         case .GET:
             return "GET"

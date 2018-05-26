@@ -3,7 +3,6 @@ import Result
 import NIOHTTP1
 
 public struct SgRequestContext {
-    public var userInfo: [String: Any]
     
     public let logger: LogProtocol
     public let errorProvider: ErrorProvider
@@ -12,8 +11,19 @@ public struct SgRequestContext {
         self.logger = logger
         self.errorProvider = errorProvider
         
-        userInfo = [:]
+        _userInfo = [:]
     }
+    
+    public mutating func set(value: Any, forKey key: String) {
+        _userInfo[key] = value
+    }
+    
+    var userInfo: [String: Any] {
+        return _userInfo
+    }
+    
+    // MARK:-
+    private var _userInfo: [String: Any]
 }
 
 // MARK: -

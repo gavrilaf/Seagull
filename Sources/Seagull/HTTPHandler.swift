@@ -65,17 +65,11 @@ final class HTTPHandler: ChannelInboundHandler {
     
     private var preparedRequest: PreparedRequest?
     
-    public init(router: Router, fileIO: NonBlockingFileIO, logger: LogProtocol, errorProvider: ErrorProvider) {
+    init(router: Router, fileIO: NonBlockingFileIO, logger: LogProtocol, errorProvider: ErrorProvider) {
         self.router = router
         self.fileIO = fileIO
         self.logger = logger
         self.errorProvider = errorProvider
-        
-        logger.info("HTTPHandler created")
-    }
-    
-    deinit {
-        logger.info("HTTPHandler deleted")
     }
     
     // MARK: -

@@ -4,20 +4,6 @@ import NIOHTTP1
 
 // MARK: -
 
-public enum RouterError: LocalizedError {
-    case onlyOneWildAllowed
-    case notFound(method: HTTPMethod, uri: String)
-    
-    public var errorDescription: String? {
-        switch self {
-        case .onlyOneWildAllowed:
-            return "RouterError.onlyOneWildAllowed"
-        case .notFound(let method, let uri):
-            return "RouterError.notFound(\(method), \(uri))"
-        }
-    }
-}
-
 public enum DataError: LocalizedError {
     case emptyBody
     case decodeErr(Error)
@@ -35,7 +21,21 @@ public enum DataError: LocalizedError {
     }
 }
 
-public enum AppCreatedError: LocalizedError {
+public enum RouterError: LocalizedError, Equatable {
+    case onlyOneWildAllowed
+    case notFound(method: HTTPMethod, uri: String)
+    
+    public var errorDescription: String? {
+        switch self {
+        case .onlyOneWildAllowed:
+            return "RouterError.onlyOneWildAllowed"
+        case .notFound(let method, let uri):
+            return "RouterError.notFound(\(method), \(uri))"
+        }
+    }
+}
+
+public enum AppCreatedError: LocalizedError, Equatable {
     case textErr(String)
     case jsonErr
     

@@ -16,7 +16,7 @@ class SgHandlerTests: XCTestCase {
         super.tearDown()
     }
     
-    func testSimpleHandler() {
+    func testHandlerNoMiddleware() {
         let subject = PreparedRequest.testMake { (_, context) -> SgResult in
             return SgResult.data(response: SgDataResponse.from(string: "test"))
         }
@@ -29,7 +29,67 @@ class SgHandlerTests: XCTestCase {
         } else {
             XCTFail()
         }
-        
     }
     
+    func testMiddlewareChain() {
+        let chain: MiddlewareChain = [
+            { (_, ctx) -> MiddlewareResult in
+                var mutableContext = ctx
+                mutableContext.set(value: "12345", forKey: "token")
+                return MiddlewareResult(value: mutableContext)
+            },
+            { (_, ctx) -> MiddlewareResult in
+                var mutableContext = ctx
+                mutableContext.set(value: "test", forKey: "user")
+                return MiddlewareResult(value: mutableContext)
+            },
+        ]
+        
+        let subject = PreparedRequest.testMake(middleware: chain) { (_, context) -> SgResult in
+            let token = context.userInfo["token"] as! String
+            let user = context.userInfo["user"] as! String
+            return SgResult.data(response: SgDataResponse.from(string: "token=\(token);user=\(user)"))
+        }
+        
+        let result = subject.handle(request: SgRequest.testMake(), ctx: context)
+        
+        XCTAssertEqual(HTTPResponseStatus.ok, result.httpCode)
+        if case .data(let resp) = result {
+            XCTAssertEqual("token=12345;user=test", String(data: resp.body!, encoding: .utf8))
+        } else {
+            XCTFail()
+        }
+    }
+    
+    func testMiddlewareWithError() {
+        let chain: MiddlewareChain = [
+            { (_, ctx) -> MiddlewareResult in
+                var mutableContext = ctx
+                mutableContext.set(value: "12345", forKey: "token")
+                return MiddlewareResult(value: mutableContext)
+                },
+            { (_, ctx) -> MiddlewareResult in
+                return MiddlewareResult(error: ctx.errorProvider.convert(error: AppCreatedError.textErr("error-test")))
+            }
+        ]
+        
+        let subject = PreparedRequest.testMake(middleware: chain) { (_, context) -> SgResult in
+            return SgResult.data(response: SgDataResponse.from(string: "test"))
+        }
+        
+        let result = subject.handle(request: SgRequest.testMake(), ctx: context)
+        
+        XCTAssertEqual(HTTPResponseStatus.internalServerError, result.httpCode)
+        if case .error(let resp) = result {
+            //XCTAssertEqual(AppCreatedError.textErr("error-test"), resp.error as? AppCreatedError )
+        } else {
+            XCTFail()
+        }
+    }
+    
+    // MARK: -
+    static var allTests = [
+        ("testHandlerNoMiddleware", testHandlerNoMiddleware),
+        ("testMiddlewareChain", testMiddlewareChain),
+    ]
 }

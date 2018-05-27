@@ -35,7 +35,7 @@ class TestWebServer {
                 if op.operation == "+" {
                     return ctx.encode(json: OpResult(result: op.a + op.b, operation: "+"))
                 } else {
-                    return SgResult.error(response: SgErrorResponse.appError(string: "Unknown operation", code: .notImplemented))
+                    return SgResult.error(response: SgErrorResponse.make(string: "Unknown operation", code: .notImplemented))
                 }
             } catch let err {
                 return SgResult.error(response: ctx.errorProvider.generalError(err))

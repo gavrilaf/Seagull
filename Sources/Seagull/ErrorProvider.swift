@@ -9,12 +9,12 @@ public protocol ErrorProvider {
 extension ErrorProvider {
     func convert(error: Error) -> SgErrorResponse {
         switch error {
-        case let errResp as SgErrorResponse:
-            return errResp
-        case let routerErr as RouterError:
-            return routerError(routerErr)
-        case let dataErr as DataError:
-            return dataError(dataErr)
+        case let err as SgErrorResponse:
+            return err
+        case let err as RouterError:
+            return routerError(err)
+        case let err as DataError:
+            return dataError(err)
         default:
             return generalError(error)
         }
@@ -30,24 +30,24 @@ public final class DefaultErrorProvider: ErrorProvider {
     public func routerError(_ error: RouterError) -> SgErrorResponse {
         switch error {
         case .notFound(let method, let uri):
-            return SgErrorResponse.appError(string: "Handler for \(method.str) \(uri) not found", code: .notFound)
+            return SgErrorResponse.make(string: "Handler for \(method.str) \(uri) not found", code: .notFound, err: error)
         case .onlyOneWildAllowed:
-            return SgErrorResponse.appError(string: "Only one wild allowed", code: .internalServerError)
+            return SgErrorResponse.make(string: "Only one wild allowed", code: .internalServerError, err: error)
         }
     }
     
     public func dataError(_ error: DataError) -> SgErrorResponse {
         switch error {
         case .emptyBody:
-            return SgErrorResponse.appError(string: "Request has empty body", code: .badRequest)
+            return SgErrorResponse.make(string: "Request has empty body", code: .badRequest, err: error)
         case .decodeErr(let err):
-            return SgErrorResponse.appError(string: "JSON decoding error, \(err)", code: .badRequest)
+            return SgErrorResponse.make(string: "JSON decoding error, \(err)", code: .badRequest, err: error)
         case .encodeErr(let err):
-            return SgErrorResponse.appError(string: "JSON encoding error, \(err)", code: .internalServerError)
+            return SgErrorResponse.make(string: "JSON encoding error, \(err)", code: .internalServerError, err: error)
         }
     }
-
+    
     public func generalError(_ error: Error) -> SgErrorResponse {
-        return SgErrorResponse.appError(string: "Error: \(type(of: error)), \(error.localizedDescription)", code: .internalServerError)
+        return SgErrorResponse.make(string: "Error: \(type(of: error)), \(error.localizedDescription)", code: .internalServerError, err: error)
     }
 }

@@ -62,6 +62,11 @@ class SgHandlerTests: XCTestCase {
     }
     
     func testMiddlewareWithError() {
+        
+        enum TestError: Error, Equatable {
+            case testErr
+        }
+        
         let chain: MiddlewareChain = [
             { (_, ctx) -> MiddlewareResult in
                 var mutableContext = ctx
@@ -69,7 +74,7 @@ class SgHandlerTests: XCTestCase {
                 return MiddlewareResult(value: mutableContext)
                 },
             { (_, ctx) -> MiddlewareResult in
-                return MiddlewareResult(error: ctx.errorProvider.convert(error: AppCreatedError.textErr("error-test")))
+                return MiddlewareResult(error: SgErrorResponse.make(string: "test-error", code: .badRequest, err: TestError.testErr))
             }
         ]
         
@@ -79,9 +84,10 @@ class SgHandlerTests: XCTestCase {
         
         let result = subject.handle(request: SgRequest.testMake(), ctx: context)
         
-        XCTAssertEqual(HTTPResponseStatus.internalServerError, result.httpCode)
+        XCTAssertEqual(HTTPResponseStatus.badRequest, result.httpCode)
         if case .error(let resp) = result {
-            //XCTAssertEqual(AppCreatedError.textErr("error-test"), resp.error as? AppCreatedError )
+            XCTAssertEqual(TestError.testErr, resp.error as? TestError)
+            XCTAssertEqual("test-error", String(data: resp.response.body!, encoding: .utf8))
         } else {
             XCTFail()
         }

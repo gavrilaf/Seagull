@@ -21,7 +21,7 @@ public enum DataError: LocalizedError {
     }
 }
 
-public enum RouterError: LocalizedError, Equatable {
+public enum RouterError: LocalizedError {
     case onlyOneWildAllowed
     case notFound(method: HTTPMethod, uri: String)
     
@@ -35,42 +35,27 @@ public enum RouterError: LocalizedError, Equatable {
     }
 }
 
-public enum AppCreatedError: LocalizedError, Equatable {
-    case textErr(String)
-    case jsonErr
-    
-    public var errorDescription: String? {
-        switch self {
-        case .textErr(let s):
-            return "AppCreatedError.textErr(\(s))"
-        case .jsonErr:
-            return "AppCreatedError.jsonErr"
-        }
-    }
-}
-
 // MARK: -
 
 public struct SgErrorResponse: Error {
     public let response: SgDataResponse
-    public let error: Error
+    public let error: Error?
 }
 
 extension SgErrorResponse {
     
-    public static func appError(string: String, code: HTTPResponseStatus, headers: HTTPHeaders = Headers.MIME.text) -> SgErrorResponse {
+    public static func make(string: String, code: HTTPResponseStatus, headers: HTTPHeaders = Headers.MIME.text, err: Error? = nil) -> SgErrorResponse {
         let resp = SgDataResponse(code: code, headers: headers, body: string.data(using: .utf8))
-        return SgErrorResponse(response: resp, error: AppCreatedError.textErr(string))
+        return SgErrorResponse(response: resp, error: err)
     }
     
-    public static func appError<T: Encodable>(json: T, code: HTTPResponseStatus, headers: HTTPHeaders = Headers.MIME.json) throws -> SgErrorResponse {
-        let encoder = JSONEncoder()
-        let data = try encoder.encode(json)
-        return SgErrorResponse(response: SgDataResponse(code: code, headers: headers, body: data), error: AppCreatedError.jsonErr)
+    public static func make<T: Encodable>(json: T, code: HTTPResponseStatus, headers: HTTPHeaders = Headers.MIME.json, err: Error? = nil) throws -> SgErrorResponse {
+        let data = try JSONEncoder().encode(json)
+        return SgErrorResponse(response: SgDataResponse(code: code, headers: headers, body: data), error: err )
     }
     
-    public static func appError(dict: [String: Any], code: HTTPResponseStatus, headers: HTTPHeaders = Headers.MIME.json) throws -> SgErrorResponse {
+    public static func make(dict: [String: Any], code: HTTPResponseStatus, headers: HTTPHeaders = Headers.MIME.json, err: Error? = nil) throws -> SgErrorResponse {
         let data = try JSONSerialization.data(withJSONObject: dict, options: [])
-        return SgErrorResponse(response: SgDataResponse(code: code, headers: headers, body: data), error: AppCreatedError.jsonErr)
+        return SgErrorResponse(response: SgDataResponse(code: code, headers: headers, body: data), error: err)
     }
 }

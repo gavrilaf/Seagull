@@ -3,18 +3,13 @@ import NIOHTTP1
 
 struct PathBuilder {
     
+    static let trimmedChars = CharacterSet(charactersIn: " /")
+    
     init(method: HTTPMethod, uri: String) {
-        let components = (uri as NSString).pathComponents
-        
-        var index = 0
-        while index < components.count && components[index] == "/" {
-            index += 1
-        }
-        
-        var t = Array(components[index...])
-        t.append(method.str)
-        
-        pathComponents = t
+        let trimmed = uri.trimmingCharacters(in: PathBuilder.trimmedChars)
+        var components = (trimmed as NSString).pathComponents
+        components.append(method.str)
+        pathComponents = components
     }
     
     let pathComponents: [String]

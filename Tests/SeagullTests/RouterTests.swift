@@ -41,6 +41,18 @@ class RouterTests: XCTestCase {
         checkRoute(router.lookup(method: .GET, uri: "/a/b/c/d/e/f"), "/:a/:b/:c/:d/:e/:f", .GET, ["a": "a", "b": "b", "c": "c", "d": "d", "e": "e", "f": "f"])
     }
     
+    func testRoutesWithSlash() {
+        let routes = ["/", "/:id", "/profile", "/profile/:id"]
+        routes.forEach { try! router.add(method: .GET, relativePath: $0, handler: emptyHandler) }
+        
+        checkRoute(router.lookup(method: .GET, uri: "/"), "/", .GET)
+        checkRoute(router.lookup(method: .GET, uri: "/id123"), "/:id", .GET, ["id": "id123"])
+        checkRoute(router.lookup(method: .GET, uri: "/id123/"), "/:id", .GET, ["id": "id123"])
+        checkRoute(router.lookup(method: .GET, uri: "/profile"), "/profile", .GET)
+        checkRoute(router.lookup(method: .GET, uri: "/profile/id123"), "/profile/:id", .GET, ["id": "id123"])
+        checkRoute(router.lookup(method: .GET, uri: "/profile/id123/"), "/profile/:id", .GET, ["id": "id123"])
+    }
+    
     func testGroup() {
         try! router.group("/auth") {
             try $0.PUT("/register", handler: self.emptyHandler)

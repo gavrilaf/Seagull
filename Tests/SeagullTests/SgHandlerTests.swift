@@ -97,5 +97,6 @@ class SgHandlerTests: XCTestCase {
     static var allTests = [
         ("testHandlerNoMiddleware", testHandlerNoMiddleware),
         ("testMiddlewareChain", testMiddlewareChain),
+        ("testMiddlewareWithError", testMiddlewareWithError)
     ]
 }

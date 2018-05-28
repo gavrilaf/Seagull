@@ -78,5 +78,6 @@ class RouterTests: XCTestCase {
         ("testStaticRoutes", testStaticRoutes),
         ("testMethods", testMethods),
         ("testParams", testParams),
+        ("testGroup", testGroup)
     ]
 }

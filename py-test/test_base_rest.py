@@ -35,7 +35,7 @@ class TestSimpleRest(unittest.TestCase):
         pass
 
     def testRegister(self):
-        api = SgSrv()
+        api = SgClient()
 
         err = api.register(get_name(), "password")
 
@@ -43,7 +43,7 @@ class TestSimpleRest(unittest.TestCase):
         self.assertTrue(len(api.token) > 0)
 
     def testAlreadyRegistered(self):
-        api = SgSrv()
+        api = SgClient()
         name = get_name()
 
         err = api.register(name, "password")

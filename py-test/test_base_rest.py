@@ -7,7 +7,7 @@ def get_name():
     return str(uuid.uuid4()) + "@spawn.com"
 
 
-class SgSrv:
+class SgClient:
 
     def __init__(self):
         self.endpoint = "http://localhost:8010"
@@ -53,7 +53,7 @@ class TestSimpleRest(unittest.TestCase):
         err = api.register(name, "password")
         self.assertIsNotNone(err)
 
-    
+
 
 
 if __name__ == '__main__':

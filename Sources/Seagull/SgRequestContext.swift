@@ -18,8 +18,12 @@ public struct SgRequestContext {
         _userInfo[key] = value
     }
     
-    var userInfo: [String: Any] {
+    public var userInfo: [String: Any] {
         return _userInfo
+    }
+    
+    public func string(forKey key: String) -> String {
+        return _userInfo[key] as? String ?? ""
     }
     
     // MARK:-

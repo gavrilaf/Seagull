@@ -30,19 +30,22 @@ struct ProfileDTO: Codable {
     let country: String
 }
 
-public enum AppLogicError: LocalizedError {
+enum AppLogicError: LocalizedError {
+    case invalidParam
     case alreadyRegistered(String)
-    case userNotFound
-    case invalidToken
+    case userNotFound(String)
+    case tokenNotFound
     
     public var errorDescription: String? {
         switch self {
+        case .invalidParam:
+            return "invalidParam"
         case .alreadyRegistered(let user):
             return "alreadyRegistered(\(user))"
-        case .userNotFound:
-            return "userNotFound"
-        case .invalidToken:
-            return "invalidToken"
+        case .userNotFound(let user):
+            return "userNotFound(\(user))"
+        case .tokenNotFound:
+            return "tokenNotFound"
         }
     }
 }
@@ -55,7 +58,7 @@ class Db {
     
     // MARK: -
     
-    func register(_ user: LoginDTO) throws -> AuthTokenDTO {
+    func register(user: LoginDTO) throws -> AuthTokenDTO {
         return try lock.withLock {
             if self.users[user.username] != nil {
                 throw AppLogicError.alreadyRegistered(user.username)
@@ -68,18 +71,36 @@ class Db {
         }
     }
     
-    func login(_ user: LoginDTO) throws -> AuthTokenDTO {
+    func login(user: LoginDTO) throws -> AuthTokenDTO {
         return try lock.withLock {
             if self.users[user.username] != user.password {
-                throw AppLogicError.userNotFound
+                throw AppLogicError.userNotFound(user.username)
             }
             
             return self.doLogin(username: user.username)
         }
     }
     
+    func getUsername(forToken token: String) throws -> String {
+        return try lock.withLock {
+            guard let username = self.sessions[token] else {
+                throw AppLogicError.tokenNotFound
+            }
+            
+            return username
+        }
+    }
+    
     // MARK: -
-    //func getProfile(_ username: String) -> Result<AuthTokenDTO, APIError> {
+    func getProfile(username: String) throws -> ProfileDTO {
+        return try lock.withLock {
+            guard let profile = self.profiles[username] else {
+                throw AppLogicError.userNotFound(username)
+            }
+            
+            return profile
+        }
+    }
     
     // MARK: -
     private func doLogin(username: String) -> AuthTokenDTO {
@@ -102,10 +123,21 @@ class Db {
 
 struct Handlers {
     
+    static func tokenMiddleware(_ request: SgRequest, _ ctx: SgRequestContext) -> MiddlewareResult {
+        if let token = request.headers[canonicalForm: "Authorization"].first {
+            var mutableCtx = ctx
+            mutableCtx.set(value: token, forKey: "token")
+            return MiddlewareResult(value: mutableCtx)
+        } else {
+            return MiddlewareResult(error: SgErrorResponse.make(string: "unauthorized", code: .unauthorized))
+        }
+    }
+    
+    // MARK: -
     static func register(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
         do {
             let loginDTO = try ctx.decode(LoginDTO.self, request: request)
-            let token = try Db.inst.register(loginDTO)
+            let token = try Db.inst.register(user: loginDTO)
             return ctx.encode(json: token)
         } catch let err {
             return SgResult.error(response: ctx.errorProvider.generalError(err))
@@ -115,15 +147,40 @@ struct Handlers {
     static func login(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
         do {
             let loginDTO = try ctx.decode(LoginDTO.self, request: request)
-            let token = try Db.inst.login(loginDTO)
+            let token = try Db.inst.login(user: loginDTO)
             return ctx.encode(json: token)
         } catch let err {
             return SgResult.error(response: ctx.errorProvider.generalError(err))
         }
     }
     
+    static func getMyProfile(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
+        do {
+            let token = ctx.string(forKey: "token")
+            let username = try Db.inst.getUsername(forToken: token)
+            let profile = try Db.inst.getProfile(username: username)
+            
+            return ctx.encode(json: profile)
+        } catch let err {
+            return SgResult.error(response: ctx.errorProvider.generalError(err))
+        }
+    }
+    
     static func getProfile(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
-        return SgResult.error(response: SgErrorResponse.make(string: "Not implemented", code: .internalServerError))
+        do {
+            _ = try Db.inst.getUsername(forToken: ctx.string(forKey: "token"))
+            
+            guard let username = request.urlParams["username"] else {
+                throw AppLogicError.invalidParam
+            }
+            
+            
+            let profile = try Db.inst.getProfile(username: username)
+            return ctx.encode(json: profile)
+            
+        } catch let err {
+            return SgResult.error(response: ctx.errorProvider.generalError(err))
+        }
     }
     
     static func updateProfile(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {

@@ -11,8 +11,9 @@ do {
         try $0.POST("/login", handler: Handlers.login)
     }
     
-    try! router.group("/profile") {
-        try $0.GET("/:id", handler: Handlers.getProfile)
+    try! router.group("/profile", middleware: [Handlers.tokenMiddleware]) {
+        try $0.GET("/", handler: Handlers.getMyProfile)
+        try $0.GET("/shared/:username", handler: Handlers.getProfile)
     }
     
     let engine = Engine(router: router)

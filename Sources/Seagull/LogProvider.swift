@@ -1,4 +1,4 @@
-
+import Foundation
 
 public protocol LogProtocol {
     func info(_ msg: String, _ params: Any...)
@@ -13,15 +13,21 @@ public final class DefaultLogger: LogProtocol  {
     public init() {}
     
     public func info(_ msg: String, _ params: Any...) {
-        printMsg(String(format: msg, params), prefix: Prefix.info)
+        queue.async {
+            DefaultLogger.printMsg(String(format: msg, params), prefix: Prefix.info)
+        }
     }
     
     public func warning(_ msg: String, _ params: Any...) {
-        printMsg(String(format: msg, params), prefix: Prefix.warning)
+        queue.async {
+            DefaultLogger.printMsg(String(format: msg, params), prefix: Prefix.warning)
+        }
     }
     
     public func error(_ msg: String, _ params: Any...) {
-        printMsg(String(format: msg, params), prefix: Prefix.error)
+        queue.async {
+            DefaultLogger.printMsg(String(format: msg, params), prefix: Prefix.error)
+        }
     }
     
     // MARK: -
@@ -32,7 +38,9 @@ public final class DefaultLogger: LogProtocol  {
         static let error = "❗️[ERROR]"
     }
     
-    func printMsg(_ msg: String, prefix: String) {
+    static func printMsg(_ msg: String, prefix: String) {
           print("\(prefix) \(msg)")
     }
+    
+    let queue = DispatchQueue(label: "log-queue", qos: .utility)
 }

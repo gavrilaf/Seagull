@@ -271,11 +271,16 @@ final class HTTPHandler: ChannelInboundHandler {
     // MARK: -
     private func logRequestResult(_ result: SgResult) {
         guard let request = preparedRequest else { return }
+        
         let responseCode = result.httpCode
         if responseCode.code < 400 {
-            logger.info("\(request.method) \(request.uri), \(responseCode)")
+            
         } else {
-            logger.error("\(request.method) \(request.uri), \(result)")
+            if case let .error(errResp) = result, let err = errResp.error {
+                logger.error("\(request.method) \(request.uri), \(responseCode), \(err)")
+            } else {
+                logger.info("\(request.method) \(request.uri), \(responseCode)")
+            }
         }
     }
 }

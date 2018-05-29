@@ -38,8 +38,15 @@ public final class DefaultLogger: LogProtocol  {
         static let error = "❗️[ERROR]"
     }
     
+    static let formatter: DateFormatter = {
+        let dateFormatter =  DateFormatter()
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSSS"
+        return dateFormatter
+    }()
+    
     static func printMsg(_ msg: String, prefix: String) {
-          print("\(prefix) \(msg)")
+        print("\(prefix) \(formatter.string(from: Date())) - \(msg)")
     }
     
     let queue = DispatchQueue(label: "log-queue", qos: .utility)

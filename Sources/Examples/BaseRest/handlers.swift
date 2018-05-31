@@ -59,64 +59,54 @@ class Db {
     // MARK: -
     
     func register(user: LoginDTO) throws -> AuthTokenDTO {
-        return try lock.withLock {
-            if self.users[user.username] != nil {
-                throw AppLogicError.alreadyRegistered(user.username)
-            }
-            
-            self.users[user.username] = user.password
-            self.profiles[user.username] = ProfileDTO(firstName: "", lastName: "", country: "UA")
-            
-            return self.doLogin(username: user.username)
+        if self.users.get(key: user.username) != nil {
+            throw AppLogicError.alreadyRegistered(user.username)
         }
+            
+        self.users.set(value: user.password, forKey: user.username)
+        self.profiles.set(value: ProfileDTO(firstName: "", lastName: "", country: "UA"), forKey: user.username)
+            
+        return self.doLogin(username: user.username)
     }
     
     func login(user: LoginDTO) throws -> AuthTokenDTO {
-        return try lock.withLock {
-            if self.users[user.username] != user.password {
-                throw AppLogicError.userNotFound(user.username)
-            }
-            
-            return self.doLogin(username: user.username)
+        if self.users.get(key: user.username) != user.password {
+            throw AppLogicError.userNotFound(user.username)
         }
+            
+        return self.doLogin(username: user.username)
     }
     
     func getUsername(forToken token: String) throws -> String {
-        return try lock.withLock {
-            guard let username = self.sessions[token] else {
-                throw AppLogicError.tokenNotFound
-            }
-            
-            return username
+        guard let username = self.sessions.get(key: token) else {
+            throw AppLogicError.tokenNotFound
         }
+            
+        return username
     }
     
     // MARK: -
     func getProfile(username: String) throws -> ProfileDTO {
-        return try lock.withLock {
-            guard let profile = self.profiles[username] else {
-                throw AppLogicError.userNotFound(username)
-            }
-            
-            return profile
+        guard let profile = self.profiles.get(key: username) else {
+            throw AppLogicError.userNotFound(username)
         }
+            
+        return profile
     }
     
     // MARK: -
     private func doLogin(username: String) -> AuthTokenDTO {
         let token = "token-\(self.counter)"
-        sessions[token] = username
+        sessions.set(value: username, forKey: token)
         counter += 1
         return AuthTokenDTO(token: token)
     }
     
-    private let lock = Lock()
-    
     private var counter: Int64 = 0
     
-    private var users = [String: String]()
-    private var sessions = [String: String]()
-    private var profiles = [String: ProfileDTO]()
+    private var users = SafeMap<String, String>()
+    private var sessions = SafeMap<String, String>()
+    private var profiles = SafeMap<String, ProfileDTO>()
 }
 
 // MARK: -

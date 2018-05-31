@@ -34,13 +34,13 @@ class TestSimpleRest(unittest.TestCase):
     def setUp(self):
         pass
 
-    def testRegister(self):
-        api = SgClient()
-
-        err = api.register(get_name(), "password")
-
-        self.assertIsNone(err)
-        self.assertTrue(len(api.token) > 0)
+    # def testRegister(self):
+    #     api = SgClient()
+    #
+    #     err = api.register(get_name(), "password")
+    #
+    #     self.assertIsNone(err)
+    #     self.assertTrue(len(api.token) > 0)
 
     def testAlreadyRegistered(self):
         api = SgClient()

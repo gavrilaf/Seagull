@@ -274,7 +274,7 @@ final class HTTPHandler: ChannelInboundHandler {
         
         let responseCode = result.httpCode
         if responseCode.code < 400 {
-            
+            logger.info("\(request.method) \(request.uri), \(responseCode)")
         } else {
             if case let .error(errResp) = result, let err = errResp.error {
                 logger.error("\(request.method) \(request.uri), \(responseCode), \(err)")

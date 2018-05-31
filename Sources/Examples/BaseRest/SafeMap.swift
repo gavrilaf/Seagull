@@ -16,4 +16,10 @@ class SafeMap<T: Hashable, E> {
             self.map[key] = value
         }
     }
+    
+    func remove(key: T) {
+        queue.async(flags: .barrier) {
+            self.map.removeValue(forKey: key)
+        }
+    }
 }

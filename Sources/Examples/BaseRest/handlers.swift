@@ -57,7 +57,6 @@ class Db {
     static let inst = Db()
     
     // MARK: -
-    
     func register(user: LoginDTO) throws -> AuthTokenDTO {
         if self.users.get(key: user.username) != nil {
             throw AppLogicError.alreadyRegistered(user.username)
@@ -77,12 +76,8 @@ class Db {
         return self.doLogin(username: user.username)
     }
     
-    func getUsername(forToken token: String) throws -> String {
-        guard let username = self.sessions.get(key: token) else {
-            throw AppLogicError.tokenNotFound
-        }
-            
-        return username
+    func logout(token: String) {
+        self.sessions.remove(key: token)
     }
     
     // MARK: -
@@ -94,6 +89,22 @@ class Db {
         return profile
     }
     
+    func updateProfile(username: String, profile: ProfileDTO) throws {
+        guard let profile = self.profiles.get(key: username) else {
+            throw AppLogicError.userNotFound(username)
+        }
+        
+        self.profiles.set(value: profile, forKey: username)
+    }
+    
+    func deleteUser(token: String) throws {
+        let username = try getUsername(forToken: token)
+        
+        self.sessions.remove(key: token)
+        self.profiles.remove(key: username)
+        self.users.remove(key: username)
+    }
+    
     // MARK: -
     private func doLogin(username: String) -> AuthTokenDTO {
         let token = "token-\(self.counter)"
@@ -102,6 +113,15 @@ class Db {
         return AuthTokenDTO(token: token)
     }
     
+    func getUsername(forToken token: String) throws -> String {
+        guard let username = self.sessions.get(key: token) else {
+            throw AppLogicError.tokenNotFound
+        }
+        
+        return username
+    }
+    
+    // MARK: -
     private var counter: Int64 = 0
     
     private var users = SafeMap<String, String>()
@@ -164,17 +184,26 @@ struct Handlers {
                 throw AppLogicError.invalidParam
             }
             
-            
             let profile = try Db.inst.getProfile(username: username)
             return ctx.encode(json: profile)
-            
         } catch let err {
             return SgResult.error(response: ctx.errorProvider.generalError(err))
         }
     }
     
     static func updateProfile(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
-        return SgResult.error(response: SgErrorResponse.make(string: "Not implemented", code: .internalServerError))
+        do {
+            let username = try Db.inst.getUsername(forToken: ctx.string(forKey: "token"))
+            let profile = try ctx.decode(ProfileDTO.self, request: request)
+            
+            try Db.inst.updateProfile(username: username, profile: profile)
+            
+            // TODO: Add empty response type
+            return SgResult.data(response: SgDataResponse.from(string: ""))
+            
+        } catch let err {
+            return SgResult.error(response: ctx.errorProvider.generalError(err))
+        }
     }
     
     static func deleteProfile(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {

@@ -15,7 +15,6 @@ struct AuthTokenDTO: Codable {
 }
 
 struct ProfileDTO: Codable {
-    
     init(firstName: String, lastName: String, country: String) {
         self.personal = PersonalInfo(firstName: firstName, lastName: lastName)
         self.country = country
@@ -164,6 +163,7 @@ struct Handlers {
         }
     }
     
+    // MARK: -
     static func getMyProfile(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
         do {
             let token = ctx.string(forKey: "token")
@@ -197,9 +197,7 @@ struct Handlers {
             let profile = try ctx.decode(ProfileDTO.self, request: request)
             
             try Db.inst.updateProfile(username: username, profile: profile)
-            
-            // TODO: Add empty response type
-            return SgResult.data(response: SgDataResponse.from(string: ""))
+            return SgResult.data(response: SgDataResponse.empty())
             
         } catch let err {
             return SgResult.error(response: ctx.errorProvider.generalError(err))
@@ -207,10 +205,25 @@ struct Handlers {
     }
     
     static func deleteProfile(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
-        return SgResult.error(response: SgErrorResponse.make(string: "Not implemented", code: .internalServerError))
+        do {
+            try Db.inst.deleteUser(token: ctx.string(forKey: "token"))
+            return SgResult.data(response: SgDataResponse.empty())
+        } catch let err {
+            return SgResult.error(response: ctx.errorProvider.generalError(err))
+        }
     }
     
     static func logout(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
-        return SgResult.error(response: SgErrorResponse.make(string: "Not implemented", code: .internalServerError))
+        Db.inst.logout(token: ctx.string(forKey: "token"))
+        return SgResult.data(response: SgDataResponse.empty())
+    }
+    
+    static func whoami(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
+        do {
+            let username = try Db.inst.getUsername(forToken: ctx.string(forKey: "token"))
+            return ctx.encode(dict: ["username": username])
+        } catch let err {
+            return SgResult.error(response: ctx.errorProvider.generalError(err))
+        }
     }
 }

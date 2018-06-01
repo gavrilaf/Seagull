@@ -9,6 +9,10 @@ public struct SgDataResponse {
 
 
 extension SgDataResponse {
+    public static func empty(code: HTTPResponseStatus = .ok, headers: HTTPHeaders = HTTPHeaders()) -> SgDataResponse {
+        return SgDataResponse(code: code, headers: headers, body: nil)
+    }
+    
     public static func from(string: String, code: HTTPResponseStatus = .ok, headers: HTTPHeaders = Headers.MIME.text) -> SgDataResponse {
         return SgDataResponse(code: code, headers: headers, body: string.data(using: .utf8))
     }

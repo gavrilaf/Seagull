@@ -14,7 +14,12 @@ do {
     try! router.group("/profile", middleware: [Handlers.tokenMiddleware]) {
         try $0.GET("/", handler: Handlers.getMyProfile)
         try $0.GET("/shared/:username", handler: Handlers.getProfile)
+        try $0.POST("/", handler: Handlers.updateProfile)
+        try $0.DELETE("/", handler: Handlers.deleteProfile)
     }
+    
+    try! router.add(method: .POST, relativePath: "/logout", handler: Handlers.logout, middleware: [Handlers.tokenMiddleware])
+    try! router.add(method: .GET, relativePath: "/whoami", handler: Handlers.whoami, middleware: [Handlers.tokenMiddleware])
     
     let engine = Engine(router: router)
     try engine.run(host: "::1", port: 8010)

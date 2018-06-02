@@ -59,6 +59,16 @@ class SgClient:
         else:
             return False, resp.json()
 
+    def update_profile(self, first_name, last_name, country):
+        json = {"personal": {"firstName": first_name, "lastName": last_name}, "country": country}
+        resp = requests.post(self.endpoint + '/profile', headers={"Authorization": self.token}, json=json)
+
+        if resp.status_code != 200:
+            return resp.text
+        else:
+            return None
+
+
 
 
 class TestSimpleRest(unittest.TestCase):
@@ -125,6 +135,24 @@ class TestSimpleRest(unittest.TestCase):
         self.assertEqual("UA", json["country"])
         self.assertEqual("", json["personal"]["firstName"])
         self.assertEqual("", json["personal"]["lastName"])
+
+    def testUpdateProfile(self):
+        name = get_name()
+
+        api = SgClient()
+        err = api.register(name, "password")
+        self.assertIsNone(err)
+
+        err = api.update_profile("vasya", "pupkin", "US")
+        self.assertIsNone(err)
+
+        is_err, json = api.get_profile()
+        self.assertFalse(is_err)
+
+        self.assertEqual("US", json["country"])
+        self.assertEqual("vasya", json["personal"]["firstName"])
+        self.assertEqual("pupkin", json["personal"]["lastName"])
+
 
 
 

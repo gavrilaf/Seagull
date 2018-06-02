@@ -88,11 +88,7 @@ class Db {
         return profile
     }
     
-    func updateProfile(username: String, profile: ProfileDTO) throws {
-        guard let profile = self.profiles.get(key: username) else {
-            throw AppLogicError.userNotFound(username)
-        }
-        
+    func updateProfile(username: String, profile: ProfileDTO) {
         self.profiles.set(value: profile, forKey: username)
     }
     

@@ -145,7 +145,7 @@ struct Handlers {
             let token = try Db.inst.register(user: loginDTO)
             return ctx.encode(json: token)
         } catch let err {
-            return SgResult.error(response: ctx.errorProvider.generalError(err))
+            return ctx.error(err)
         }
     }
     
@@ -155,7 +155,7 @@ struct Handlers {
             let token = try Db.inst.login(user: loginDTO)
             return ctx.encode(json: token)
         } catch let err {
-            return SgResult.error(response: ctx.errorProvider.generalError(err))
+            return ctx.error(err)
         }
     }
     
@@ -168,7 +168,7 @@ struct Handlers {
             
             return ctx.encode(json: profile)
         } catch let err {
-            return SgResult.error(response: ctx.errorProvider.generalError(err))
+            return ctx.error(err)
         }
     }
     
@@ -183,7 +183,7 @@ struct Handlers {
             let profile = try Db.inst.getProfile(username: username)
             return ctx.encode(json: profile)
         } catch let err {
-            return SgResult.error(response: ctx.errorProvider.generalError(err))
+            return ctx.error(err)
         }
     }
     
@@ -192,26 +192,26 @@ struct Handlers {
             let username = try Db.inst.getUsername(forToken: ctx.string(forKey: "token"))
             let profile = try ctx.decode(ProfileDTO.self, request: request)
             
-            try Db.inst.updateProfile(username: username, profile: profile)
+            Db.inst.updateProfile(username: username, profile: profile)
             return SgResult.data(response: SgDataResponse.empty())
             
         } catch let err {
-            return SgResult.error(response: ctx.errorProvider.generalError(err))
+            return ctx.error(err)
         }
     }
     
     static func deleteProfile(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
         do {
             try Db.inst.deleteUser(token: ctx.string(forKey: "token"))
-            return SgResult.data(response: SgDataResponse.empty())
+            return ctx.empty()
         } catch let err {
-            return SgResult.error(response: ctx.errorProvider.generalError(err))
+            return ctx.error(err)
         }
     }
     
     static func logout(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
         Db.inst.logout(token: ctx.string(forKey: "token"))
-        return SgResult.data(response: SgDataResponse.empty())
+        return ctx.empty()
     }
     
     static func whoami(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
@@ -219,7 +219,7 @@ struct Handlers {
             let username = try Db.inst.getUsername(forToken: ctx.string(forKey: "token"))
             return ctx.encode(dict: ["username": username])
         } catch let err {
-            return SgResult.error(response: ctx.errorProvider.generalError(err))
+            return ctx.error(err)
         }
     }
 }

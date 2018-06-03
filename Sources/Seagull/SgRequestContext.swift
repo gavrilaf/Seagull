@@ -30,9 +30,9 @@ public struct SgRequestContext {
     private var _userInfo: [String: Any]
 }
 
-// MARK: -
-
 extension SgRequestContext {
+    
+    // MARK:-
     public func decode<T: Decodable>(_ t: T.Type, request: SgRequest) throws -> T {
         guard let body = request.body else {
             throw DataError.emptyBody
@@ -59,5 +59,19 @@ extension SgRequestContext {
         } catch let err {
             return SgResult.error(response: errorProvider.convert(error: DataError.encodeErr(err)))
         }
+    }
+    
+    // MARK:-
+    public func error(_ error: Error) -> SgResult {
+        return SgResult.error(response: errorProvider.convert(error: error))
+    }
+    
+    // MARK:-
+    public func empty(code: HTTPResponseStatus = .ok, headers: HTTPHeaders = HTTPHeaders()) -> SgResult {
+        return SgResult.data(response: SgDataResponse.empty(code: code, headers: headers))
+    }
+    
+    public func text(_ text: String, code: HTTPResponseStatus = .ok, headers: HTTPHeaders = HTTPHeaders()) -> SgResult {
+        return SgResult.data(response: SgDataResponse.from(string: text, code: code, headers: headers))
     }
 }

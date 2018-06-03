@@ -45,7 +45,6 @@ class SgClient:
 
     def whoami(self):
         resp = requests.get(self.endpoint + '/whoami', headers={"Authorization": self.token})
-
         if resp.status_code != 200:
             return True, resp.text
         else:
@@ -62,19 +61,27 @@ class SgClient:
     def update_profile(self, first_name, last_name, country):
         json = {"personal": {"firstName": first_name, "lastName": last_name}, "country": country}
         resp = requests.post(self.endpoint + '/profile', headers={"Authorization": self.token}, json=json)
+        if resp.status_code != 200:
+            return resp.text
+        else:
+            return None
 
+    def logout(self):
+        resp = requests.post(self.endpoint + '/logout', headers={"Authorization": self.token})
+        if resp.status_code != 200:
+            return resp.text
+        else:
+            return None
+
+    def delete_profile(self):
+        resp = requests.delete(self.endpoint + '/profile', headers={"Authorization": self.token})
         if resp.status_code != 200:
             return resp.text
         else:
             return None
 
 
-
-
 class TestSimpleRest(unittest.TestCase):
-
-    def setUp(self):
-        pass
 
     def testRegister(self):
         api = SgClient()
@@ -153,7 +160,36 @@ class TestSimpleRest(unittest.TestCase):
         self.assertEqual("vasya", json["personal"]["firstName"])
         self.assertEqual("pupkin", json["personal"]["lastName"])
 
+    def testLogout(self):
+        name = get_name()
 
+        api = SgClient()
+        err = api.register(name, "password")
+        self.assertIsNone(err)
+
+        err = api.logout()
+        self.assertIsNone(err)
+
+        is_err, err = api.whoami()
+        self.assertTrue(is_err)
+        self.assertEqual("Error: AppLogicError, tokenNotFound", str(err))
+
+    def testDeleteProfile(self):
+        name = get_name()
+
+        api1 = SgClient()
+        err = api1.register(name, "password")
+        self.assertIsNone(err)
+
+        err = api1.delete_profile()
+        self.assertIsNone(err)
+
+        api2 = SgClient()
+        err = api2.login(name, "password")
+        self.assertIsNotNone(err)
+
+        se = "Error: AppLogicError, userNotFound({})".format(name)
+        self.assertEqual(se, str(err))
 
 
 if __name__ == '__main__':

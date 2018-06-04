@@ -1,9 +1,9 @@
 import Foundation
 
 public protocol LogProtocol {
-    func info(_ msg: String, _ params: Any...)
-    func warning(_ msg: String, _ params: Any...)
-    func error(_ msg: String, _ params: Any...)
+    func info(_ msg: String)
+    func warning(_ msg: String)
+    func error(_ msg: String)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -12,21 +12,21 @@ public final class DefaultLogger: LogProtocol  {
     
     public init() {}
     
-    public func info(_ msg: String, _ params: Any...) {
+    public func info(_ msg: String) {
         queue.async {
-            DefaultLogger.printMsg(String(format: msg, params), prefix: Prefix.info)
+            DefaultLogger.printMsg(msg, prefix: Prefix.info)
         }
     }
     
-    public func warning(_ msg: String, _ params: Any...) {
+    public func warning(_ msg: String) {
         queue.async {
-            DefaultLogger.printMsg(String(format: msg, params), prefix: Prefix.warning)
+            DefaultLogger.printMsg(msg, prefix: Prefix.warning)
         }
     }
     
-    public func error(_ msg: String, _ params: Any...) {
+    public func error(_ msg: String) {
         queue.async {
-            DefaultLogger.printMsg(String(format: msg, params), prefix: Prefix.error)
+            DefaultLogger.printMsg(msg, prefix: Prefix.error)
         }
     }
     

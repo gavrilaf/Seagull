@@ -7,7 +7,7 @@ struct PathBuilder {
     
     init(method: HTTPMethod, uri: String) {
         let trimmed = uri.trimmingCharacters(in: PathBuilder.trimmedChars)
-        var components = (trimmed as NSString).pathComponents
+        var components = NSString(string: trimmed).pathComponents
         components.append(method.str)
         pathComponents = components
     }

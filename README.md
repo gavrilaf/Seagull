@@ -2,8 +2,6 @@
 
 Swift web framework based on the swift-nio.
 
-Vapor, Perfect, Kitura are the well-known and good designed Swift web frameworks. Good designed with a lot of different features, but they are quite big ) 
-
 The Seagull main idea is creating minimum web framework. Routing and some data processing helpers - nothing else. Seagull was inspired by gin-gonic, the my favourite web framework for Golang. Lightweight, easy to use, minimum featutures set but really fast.
 
 ## Getting Started

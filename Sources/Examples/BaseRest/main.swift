@@ -22,7 +22,7 @@ do {
     try! router.add(method: .GET, relativePath: "/whoami", handler: Handlers.whoami, middleware: [Handlers.tokenMiddleware])
     
     let engine = Engine(router: router)
-    try engine.run(host: "::1", port: 8010)
+    try engine.run(host: "localhost", port: 8010)
     
     defer { try! engine.close() }
     try engine.waitForCompletion()

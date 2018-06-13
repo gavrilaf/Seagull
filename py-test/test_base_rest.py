@@ -58,6 +58,14 @@ class SgClient:
         else:
             return False, resp.json()
 
+    def get_shared_profile(self, name):
+        resp = requests.get(self.endpoint + '/profile/shared/' + name, headers={"Authorization": self.token})
+
+        if resp.status_code != 200:
+            return True, resp.text
+        else:
+            return False, resp.json()
+
     def update_profile(self, first_name, last_name, country):
         json = {"personal": {"firstName": first_name, "lastName": last_name}, "country": country}
         resp = requests.post(self.endpoint + '/profile', headers={"Authorization": self.token}, json=json)
@@ -102,6 +110,16 @@ class TestSimpleRest(unittest.TestCase):
         self.assertIsNotNone(err)
 
         se = "Error: AppLogicError, alreadyRegistered({})".format(name)
+        self.assertEqual(se, str(err))
+
+    def testWrongUser(self):
+        name = get_name()
+
+        api = SgClient()
+        err = api.login(name, "password")
+        self.assertIsNotNone(err)
+
+        se = "Error: AppLogicError, userNotFound({})".format(name)
         self.assertEqual(se, str(err))
 
     def testLogin(self):
@@ -190,6 +208,35 @@ class TestSimpleRest(unittest.TestCase):
 
         se = "Error: AppLogicError, userNotFound({})".format(name)
         self.assertEqual(se, str(err))
+
+    def testGetSharedProfile(self):
+        name1 = get_name()
+        name2 = get_name()
+
+        api1 = SgClient()
+        err = api1.register(name1, "password")
+        self.assertIsNone(err)
+
+        api2 = SgClient()
+        err = api2.register(name2, "password")
+        self.assertIsNone(err)
+
+        err = api1.update_profile("user-1", "luser-1", "")
+        self.assertIsNone(err)
+
+        err = api2.update_profile("user-2", "luser-2", "")
+        self.assertIsNone(err)
+
+        is_err, profile2 = api1.get_shared_profile(name2)
+        self.assertFalse(is_err)
+
+        is_err, profile1 = api2.get_shared_profile(name1)
+        self.assertFalse(is_err)
+
+        self.assertEqual("user-1", profile1["personal"]["firstName"])
+        self.assertEqual("luser-1", profile1["personal"]["lastName"])
+        self.assertEqual("user-2", profile2["personal"]["firstName"])
+        self.assertEqual("luser-2", profile2["personal"]["lastName"])
 
 
 if __name__ == '__main__':

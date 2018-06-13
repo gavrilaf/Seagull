@@ -102,11 +102,51 @@ class EngineIntegrationTests: XCTestCase {
         wait(for: [exp], timeout: 3.0)
     }
     
+    func testConcurrentCalls() {
+        let exp = XCTestExpectation()
+        
+        func _send(keepAlive: Bool, lhs: Int, rhs: Int) {
+            var req = URLRequest(url: URL(string: "http://localhost:9876/op")!)
+            
+            if keepAlive { req.addValue("Connection", forHTTPHeaderField: "keep-alive") }
+            req.httpMethod = "POST"
+            req.httpBody = try! JSONEncoder().encode(OpRequest(a: lhs, b: rhs, operation: "+"))
+            
+            let task = URLSession.shared.dataTask(with: req) { (data, resp, err) in
+                let httpResp = resp as? HTTPURLResponse
+                
+                XCTAssertNil(err)
+                XCTAssertEqual(200, httpResp?.statusCode)
+                XCTAssertEqual("application/json", httpResp?.allHeaderFields["Content-Type"] as? String)
+                
+                try! XCTAssertEqual(OpResult(result: lhs + rhs, operation: "+"), try JSONDecoder().decode(OpResult.self, from: data!))
+                
+                exp.fulfill()
+            }
+            
+            task.resume()
+        }
+        
+        let attempts = 50
+        let queue = DispatchQueue(label: "", qos: .default, attributes: .concurrent)
+        
+        exp.expectedFulfillmentCount = attempts
+        
+        for indx in 0..<50 {
+            queue.async {
+                _send(keepAlive: indx % 2 == 0, lhs: indx + 1, rhs: indx*2)
+            }
+        }
+        
+        wait(for: [exp], timeout: 3.0)
+    }
+    
     // MARK: -
     static var allTests = [
         ("testHelloWord", testHelloWord),
         ("testJSON", testJSON),
-        ("testConnectionKeepAlive", testConnectionKeepAlive),        
+        ("testConnectionKeepAlive", testConnectionKeepAlive),
+        ("testConcurrentCalls", testConcurrentCalls),
     ]
 
 }

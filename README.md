@@ -47,3 +47,10 @@ try engine.waitForCompletion()
 ```
 
 **Project is in active development and isn't ready for production usage yet. But it's good for experiments :)**
+
+## TODO for the next release
+
+* support for query params (now is always empty)
+* form-data in the body (now supports only raw)
+* performance testing; comparing with Vapor & gin-gonic
+* more tests (!!!!)

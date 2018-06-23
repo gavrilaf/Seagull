@@ -18,7 +18,7 @@ class EngineIntegrationTests: XCTestCase {
     }
     
     func testHelloWord() {
-        let exp = XCTestExpectation()
+        let exp = expectation(description: "wait for request")
         
         let task = URLSession.shared.dataTask(with: URL(string: "http://localhost:9876/helloworld")!) { (data, resp, err) in
             let httpResp = resp as? HTTPURLResponse
@@ -34,11 +34,12 @@ class EngineIntegrationTests: XCTestCase {
         }
         
         task.resume()
-        wait(for: [exp], timeout: 1.0)
+        
+        waitForExpectations(timeout: 1.0)
     }
     
     func testJSON() {
-        let exp = XCTestExpectation()
+        let exp = expectation(description: "wait for request")
         
         var req = URLRequest(url: URL(string: "http://localhost:9876/op")!)
         req.httpMethod = "POST"
@@ -50,19 +51,20 @@ class EngineIntegrationTests: XCTestCase {
             XCTAssertNil(err)
             XCTAssertEqual(200, httpResp?.statusCode)
             XCTAssertEqual("application/json", httpResp?.allHeaderFields["Content-Type"] as? String)
-            try! XCTAssertEqual(OpResult(result: 131, operation: "+"), try JSONDecoder().decode(OpResult.self, from: data!))
+            XCTAssertEqual(OpResult(result: 131, operation: "+"), try! JSONDecoder().decode(OpResult.self, from: data!))
             
             exp.fulfill()
         }
         
         task.resume()
-        wait(for: [exp], timeout: 1.0)
+        
+        waitForExpectations(timeout: 1.0)
     }
         
     func testConnectionKeepAlive() {
-        let exp = XCTestExpectation()
+        let exp = [expectation(description: "expectation 1"), expectation(description: "expectation 2"), expectation(description: "expectation 3")]
         
-        func _send() {
+        func _send(indx: Int) {
             var req = URLRequest(url: URL(string: "http://localhost:9876/op")!)
             
             req.addValue("Connection", forHTTPHeaderField: "keep-alive")
@@ -76,36 +78,33 @@ class EngineIntegrationTests: XCTestCase {
                 XCTAssertEqual(200, httpResp?.statusCode)
                 XCTAssertEqual("application/json", httpResp?.allHeaderFields["Content-Type"] as? String)
                 
-                try! XCTAssertEqual(OpResult(result: 131, operation: "+"), try JSONDecoder().decode(OpResult.self, from: data!))
+                XCTAssertEqual(OpResult(result: 131, operation: "+"), try! JSONDecoder().decode(OpResult.self, from: data!))
                 
-                exp.fulfill()
+                exp[indx].fulfill()
             }
             
             task.resume()
         }
         
-        exp.expectedFulfillmentCount = 3
-        
         DispatchQueue.global().async {
-            _send()
+            _send(indx: 0)
         }
         
         DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + .milliseconds(100)) {
-            _send()
+            _send(indx: 1)
         }
         
         DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + .milliseconds(200)) {
-            _send()
+            _send(indx: 2)
         }
         
-        
-        wait(for: [exp], timeout: 3.0)
+        waitForExpectations(timeout: 3.0)
     }
     
     func testConcurrentCalls() {
-        let exp = XCTestExpectation()
+        let exp = (0..<50).map { return self.expectation(description: "expectation \($0)") }
         
-        func _send(keepAlive: Bool, lhs: Int, rhs: Int) {
+        func _send(indx: Int, keepAlive: Bool, lhs: Int, rhs: Int) {
             var req = URLRequest(url: URL(string: "http://localhost:9876/op")!)
             
             if keepAlive { req.addValue("Connection", forHTTPHeaderField: "keep-alive") }
@@ -119,26 +118,22 @@ class EngineIntegrationTests: XCTestCase {
                 XCTAssertEqual(200, httpResp?.statusCode)
                 XCTAssertEqual("application/json", httpResp?.allHeaderFields["Content-Type"] as? String)
                 
-                try! XCTAssertEqual(OpResult(result: lhs + rhs, operation: "+"), try JSONDecoder().decode(OpResult.self, from: data!))
+                XCTAssertEqual(OpResult(result: lhs + rhs, operation: "+"), try! JSONDecoder().decode(OpResult.self, from: data!))
                 
-                exp.fulfill()
+                exp[indx].fulfill()
             }
             
             task.resume()
         }
         
-        let attempts = 50
         let queue = DispatchQueue(label: "", qos: .default, attributes: .concurrent)
-        
-        exp.expectedFulfillmentCount = attempts
-        
         for indx in 0..<50 {
             queue.async {
-                _send(keepAlive: indx % 2 == 0, lhs: indx + 1, rhs: indx*2)
+                _send(indx: indx, keepAlive: indx % 2 == 0, lhs: indx + 1, rhs: indx*2)
             }
         }
         
-        wait(for: [exp], timeout: 3.0)
+        waitForExpectations(timeout: 3.0)
     }
     
     // MARK: -
@@ -148,5 +143,4 @@ class EngineIntegrationTests: XCTestCase {
         ("testConnectionKeepAlive", testConnectionKeepAlive),
         ("testConcurrentCalls", testConcurrentCalls),
     ]
-
 }

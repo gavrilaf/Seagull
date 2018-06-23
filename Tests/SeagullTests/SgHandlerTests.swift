@@ -8,12 +8,7 @@ class SgHandlerTests: XCTestCase {
     
     override func setUp() {
         super.setUp()
-        
         context = SgRequestContext(logger: DefaultLogger(), errorProvider: DefaultErrorProvider())
-    }
-    
-    override func tearDown() {
-        super.tearDown()
     }
     
     func testHandlerNoMiddleware() {

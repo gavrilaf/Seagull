@@ -1,0 +1,40 @@
+version: "3"
+
+services:
+
+    swift-nio:
+        image: swift-nio:latest
+        build:
+            context: .
+            dockerfile: Dockerfile
+
+    unit-tests:
+        depends_on: [swift-nio]
+        image: swift-nio:latest
+        command: /bin/bash -cl "swift test"
+        volumes:
+            - ~/.ssh:/root/.ssh
+            - ..:/code
+        working_dir: /code
+
+    run-rest:
+        depends_on: [swift-nio]
+        image: swift-nio:latest
+        ports:
+            - "8010:8010"
+        command: /bin/bash -cl "swift run SgBaseRest"
+        volumes:
+            - ~/.ssh:/root/.ssh
+            - ..:/code
+        working_dir: /code
+
+    run-simple:
+        depends_on: [swift-nio]
+        image: swift-nio:latest
+        ports:
+            - "8888:8888"
+        command: /bin/bash -cl "swift run SgSimpleServer"
+        volumes:
+            - ~/.ssh:/root/.ssh
+            - ..:/code
+        working_dir: /code

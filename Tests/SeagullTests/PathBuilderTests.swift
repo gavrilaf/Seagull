@@ -12,4 +12,8 @@ class PathBuilderTests: XCTestCase {
         XCTAssertEqual(["user", "GET"], PathBuilder(method: .GET, uri: "//user//").pathComponents)
         XCTAssertEqual(["user", "profile", "GET"], PathBuilder(method: .GET, uri: "/user/profile").pathComponents)
     }
+
+    static var allTests = [
+        ("testPathes", testPathes),
+    ]
 }

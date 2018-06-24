@@ -1,18 +1,11 @@
 import Seagull
 import NIOHTTP1
 
-func logRequest(_ req: SgRequest, _ ctx: SgRequestContext) {
-    ctx.logger.info("Request: pattern=\(req.pattern), uri=\(req.uri), headers=\(req.headers)")
-}
-
-let plainTextHandler: RequestHandler = { (req, ctx) in
-    logRequest(req, ctx)
+let plainTextHandler: RequestHandler = { (_, ctx) in
     return SgResult.data(response: SgDataResponse.from(string: "This is just a string"))
 }
 
-let jsonObjHandler: RequestHandler = { (req, ctx) in
-    logRequest(req, ctx)
-    
+let jsonObjHandler: RequestHandler = { (_, ctx) in
     struct TestObj: Encodable {
         let id: Int
         let name: String
@@ -22,9 +15,7 @@ let jsonObjHandler: RequestHandler = { (req, ctx) in
     return ctx.encode(json: TestObj(id: 1, name: "Test name", status: false))
 }
 
-let jsonDictHandler: RequestHandler = { (req, ctx) in
-    logRequest(req, ctx)
-    
+let jsonDictHandler: RequestHandler = { (_, ctx) in
     let dict: [String: Any] = [
         "id": 123,
         "first_name": "Vasya",
@@ -34,9 +25,7 @@ let jsonDictHandler: RequestHandler = { (req, ctx) in
     return ctx.encode(dict: dict)
 }
 
-let fileHandler: RequestHandler = { (req, ctx) in
-    logRequest(req, ctx)
-    
+let fileHandler: RequestHandler = { (_, ctx) in
     let fileResp = SgFileResponse.from(path: "/Users/eugenf/Documents/Projects/Swift/my-github/HttpRouter/README.md")
     return SgResult.file(response: fileResp)
 }

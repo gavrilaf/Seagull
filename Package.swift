@@ -7,8 +7,8 @@ let package = Package(
     name: "Seagull",
     products: [
         .library(name: "Seagull", targets: ["Seagull"]),
-        .executable(name: "SgSimpleServer", targets: ["SgSimpleServer"]),
-        .executable(name: "SgBaseRest", targets: ["SgBaseRest"]),
+        .executable(name: "Simple", targets: ["Simple"]),
+        .executable(name: "Rest", targets: ["Rest"]),
     ],
     dependencies: [
         .package(url: "https://github.com/antitypical/Result.git", from: "4.0.0"),
@@ -16,8 +16,8 @@ let package = Package(
     ],
     targets: [
         .target(name: "Seagull", dependencies: ["NIO", "NIOHTTP1", "NIOConcurrencyHelpers", "Result"]),
-        .target(name: "SgSimpleServer", dependencies: ["Seagull"], path: "Sources/Examples/SimpleServer"),
-        .target(name: "SgBaseRest", dependencies: ["Seagull"], path: "Sources/Examples/BaseRest"),
+        .target(name: "Simple", dependencies: ["Seagull"], path: "Sources/Examples/Simple"),
+        .target(name: "Rest", dependencies: ["Seagull"], path: "Sources/Examples/Rest"),
         .testTarget(name: "SeagullTests", dependencies: ["Seagull"]),
     ]
 )

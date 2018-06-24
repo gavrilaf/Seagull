@@ -27,14 +27,14 @@ services:
     <<: *common
     command: /bin/bash -cl "./scripts/integration_tests.sh"
 
-  rest-srv:
+  rest:
     <<: *common
     ports:
       - "8010:8010"
-    command: /bin/bash -cl "swift run SgBaseRest"
+    command: /bin/bash -cl "swift run Rest 0.0.0.0 8010"
 
-  simple-srv:
+  simple:
     <<: *common
     ports:
       - "8011:8011"
-    command: /bin/bash -cl "swift run SgSimpleServer"
+    command: /bin/bash -cl "swift run Simple  0.0.0.0 8011"

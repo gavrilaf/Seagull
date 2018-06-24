@@ -1,4 +1,5 @@
 import XCTest
+import Dispatch
 import Seagull
 
 class EngineIntegrationTests: XCTestCase {

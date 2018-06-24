@@ -13,8 +13,8 @@ services:
   unit-tests:
     image: swift-nio:14.04-4.1
 
-  rest-srv:
+  rest:
     image: swift-nio:14.04-4.1
 
-  simple-srv:
+  simple:
     image: swift-nio:14.04-4.1

@@ -13,21 +13,21 @@ public final class DefaultLogger: LogProtocol  {
     public init() {}
     
     public func info(_ msg: String) {
-        queue.async {
+        //queue.async {
             DefaultLogger.printMsg(msg, prefix: Prefix.info)
-        }
+        //}
     }
     
     public func warning(_ msg: String) {
-        queue.async {
+        //queue.async {
             DefaultLogger.printMsg(msg, prefix: Prefix.warning)
-        }
+        //}
     }
     
     public func error(_ msg: String) {
-        queue.async {
+        //queue.async {
             DefaultLogger.printMsg(msg, prefix: Prefix.error)
-        }
+        //}
     }
     
     // MARK: -
@@ -49,5 +49,5 @@ public final class DefaultLogger: LogProtocol  {
         print("\(prefix) \(formatter.string(from: Date())) - \(msg)")
     }
     
-    let queue = DispatchQueue(label: "log-queue", qos: .utility)
+    //let queue = DispatchQueue(label: "log-queue", qos: .utility)
 }

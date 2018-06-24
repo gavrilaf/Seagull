@@ -1,3 +1,4 @@
+import Foundation
 import Seagull
 import NIOHTTP1
 
@@ -13,10 +14,12 @@ do {
     
     let engine = Engine(router: router)
     
-    try engine.run(host: "::1", port: 8010)
+    try engine.run(host: "0.0.0.0", port: 8011)
     
     defer { try! engine.close() }
     try engine.waitForCompletion()
+    
+    print("I'm finished !!!")
     
 } catch let err {
     print("Couldn't start server: \(err)")

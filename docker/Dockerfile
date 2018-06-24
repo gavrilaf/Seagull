@@ -42,13 +42,13 @@ RUN [ -z $install_curl_from_source ] || ( cd $HOME/.curl && ./configure --with-s
 RUN [ -z $install_curl_from_source ] || ldconfig
 
 # ruby and jazzy for docs generation
-RUN apt-add-repository -y ppa:brightbox/ruby-ng
-RUN apt-get update
-RUN apt-get install -y ruby2.4 ruby2.4-dev libsqlite3-dev
-RUN gem install jazzy --no-ri --no-rdoc
+#RUN apt-add-repository -y ppa:brightbox/ruby-ng
+#RUN apt-get update
+#RUN apt-get install -y ruby2.4 ruby2.4-dev libsqlite3-dev
+#RUN gem install jazzy --no-ri --no-rdoc
 
 # swift
-ARG swift_version=4.0.3
+ARG swift_version=4.1
 RUN mkdir $HOME/.swift
 RUN wget -q https://swift.org/builds/swift-${swift_version}-release/ubuntu$(echo $ubuntu_version | sed 's/\.//g')/swift-${swift_version}-RELEASE/swift-${swift_version}-RELEASE-ubuntu${ubuntu_version}.tar.gz -O $HOME/swift.tar.gz
 RUN tar xzf $HOME/swift.tar.gz --directory $HOME/.swift --strip-components=1

@@ -1,9 +1,9 @@
 import Foundation
 
 public protocol LogProtocol {
-    func info(_ msg: String)
-    func warning(_ msg: String)
-    func error(_ msg: String)
+    func info(_ msg: @autoclosure @escaping () -> String)
+    func warning(_ msg: @autoclosure @escaping () -> String)
+    func error(_ msg: @autoclosure @escaping () -> String)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -12,22 +12,22 @@ public final class DefaultLogger: LogProtocol  {
     
     public init() {}
     
-    public func info(_ msg: String) {
-        //queue.async {
-            DefaultLogger.printMsg(msg, prefix: Prefix.info)
-        //}
+    public func info(_ msg: @autoclosure @escaping () -> String) {
+        queue.async {
+            DefaultLogger.printMsg(msg(), prefix: Prefix.info)
+        }
     }
     
-    public func warning(_ msg: String) {
-        //queue.async {
-            DefaultLogger.printMsg(msg, prefix: Prefix.warning)
-        //}
+    public func warning(_ msg: @autoclosure @escaping () -> String) {
+        queue.async {
+            DefaultLogger.printMsg(msg(), prefix: Prefix.warning)
+        }
     }
     
-    public func error(_ msg: String) {
-        //queue.async {
-            DefaultLogger.printMsg(msg, prefix: Prefix.error)
-        //}
+    public func error(_ msg: @autoclosure @escaping () -> String) {
+        queue.async {
+            DefaultLogger.printMsg(msg(), prefix: Prefix.error)
+        }
     }
     
     // MARK: -
@@ -49,5 +49,5 @@ public final class DefaultLogger: LogProtocol  {
         print("\(prefix) \(formatter.string(from: Date())) - \(msg)")
     }
     
-    //let queue = DispatchQueue(label: "log-queue", qos: .utility)
+    let queue = DispatchQueue(label: "log-queue", qos: .utility)
 }

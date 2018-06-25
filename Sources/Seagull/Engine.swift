@@ -53,7 +53,7 @@ public class Engine {
         self.threadGroup = group
         self.channel = channel
         
-        logger.info("Server started and listening on \(String(describing: localAddress))")
+        logger.info("Server started and listening on \(String(describing: self.localAddress))")
     }
     
     public var localAddress: SocketAddress? {

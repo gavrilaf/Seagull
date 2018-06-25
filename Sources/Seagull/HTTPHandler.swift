@@ -91,9 +91,9 @@ final class HTTPHandler: ChannelInboundHandler {
             case .failure(let err):
                 self.keepAlive = head.isKeepAlive
                 self.state.requestReceived()
-                sendErrorResponse(ctx: ctx, head: head, error: err)
                 
-                // TODO: Add log here
+                logRouterError(err, head: head)
+                sendErrorResponse(ctx: ctx, head: head, error: err)
             }
             
         case .body:
@@ -269,6 +269,10 @@ final class HTTPHandler: ChannelInboundHandler {
     }
     
     // MARK: -
+    private func logRouterError(_ err: Error, head: HTTPRequestHead) {
+        logger.error("\(head.method) \(head.uri), \(err)")
+    }
+    
     private func logRequestResult(_ result: SgResult) {
         guard let request = preparedRequest else { return }
         

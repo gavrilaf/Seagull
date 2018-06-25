@@ -9,7 +9,7 @@ The Seagull main idea is creating minimum web framework. Routing and some data p
 Just build & start test REST server.
 ```
 swift build
-./.build/debug/SgBaseRest
+./.build/debug/Rest
 ```
 or using make
 ```
@@ -21,23 +21,37 @@ Run intergation tests for base rest server implementation
 make ptest
 ```
 
+## Run using docker-compose
+
+Run unit tests 
+
+```
+docker-compose -f docker/docker-compose.yaml up unit-tests
+```
+
+Run Rest server example
+
+```
+docker-compose -f docker/docker-compose.yaml up rest
+```
+
 ## Using Seagull
 
 ```swift
 var router = Router()
 
-try! router.group("/auth") {
+try router.group("/auth") {
   try $0.PUT("/register", handler: Handlers.register)
   try $0.POST("/login", handler: Handlers.login)
 }
     
-try! router.group("/profile", middleware: [Handlers.tokenMiddleware]) {
+try router.group("/profile", middleware: [Handlers.tokenMiddleware]) {
   try $0.GET("/", handler: Handlers.getMyProfile)
   try $0.POST("/", handler: Handlers.updateProfile)
   try $0.DELETE("/", handler: Handlers.deleteProfile)
 }
     
-try! router.add(method: .POST, relativePath: "/logout", handler: Handlers.logout, middleware: [Handlers.tokenMiddleware])
+try router.add(method: .POST, relativePath: "/logout", handler: Handlers.logout, middleware: [Handlers.tokenMiddleware])
 
 let engine = Engine(router: router)
 try engine.run(host: "::1", port: 8010)
@@ -47,6 +61,8 @@ try engine.waitForCompletion()
 ```
 
 **Project is in active development and isn't ready for production usage yet. But it's good for experiments :)**
+
+Current version is 0.1.5
 
 ## TODO for the next release
 

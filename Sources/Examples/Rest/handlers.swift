@@ -139,6 +139,11 @@ struct Handlers {
     }
     
     // MARK: -
+    static func ping(_ : SgRequest, _ : SgRequestContext) -> SgResult {
+        return SgResult.data(response: SgDataResponse.from(string: "SgBaseRest ping ok"))
+    }
+    
+    // MARK: -
     static func register(_ request: SgRequest, _ ctx: SgRequestContext) -> SgResult {
         do {
             let loginDTO = try ctx.decode(LoginDTO.self, request: request)

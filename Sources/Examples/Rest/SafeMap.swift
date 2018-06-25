@@ -1,4 +1,5 @@
 import Foundation
+import Dispatch
 
 class SafeMap<T: Hashable, E> {
     

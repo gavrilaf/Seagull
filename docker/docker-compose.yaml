@@ -1,0 +1,38 @@
+# this file is not designed to be run directly
+# instead, use the docker-compose.<os>.<swift> files
+# eg docker-compose -f docker/docker-compose.yaml -f docker/docker-compose.1604.41.yaml run test
+version: "3"
+
+services:
+
+  runtime-setup:
+    image: swift-nio:default
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+  common: &common
+    image: swift-nio:default
+    depends_on: [runtime-setup]
+    volumes:
+      - ~/.ssh:/root/.ssh
+      - ..:/code
+    working_dir: /code
+
+  unit-tests:
+    <<: *common
+    command: /bin/bash -cl "swift test"
+
+  rest:
+    <<: *common
+    tty: true
+    ports:
+      - "8010:8010"
+    command: /bin/bash -cl "swift run Rest 0.0.0.0 8010"
+
+  simple:
+    <<: *common
+    tty: true
+    ports:
+      - "8011:8011"
+    command: /bin/bash -cl "swift run Simple  0.0.0.0 8011"

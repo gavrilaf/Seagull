@@ -2,7 +2,7 @@ import Seagull
 import NIOHTTP1
 
 var host = "::1"
-var port = 8011
+var port = 8010
 
 if CommandLine.arguments.count == 3 {
     host = CommandLine.arguments[1]

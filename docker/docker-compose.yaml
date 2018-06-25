@@ -23,18 +23,16 @@ services:
     <<: *common
     command: /bin/bash -cl "swift test"
 
-  integration-tests:
-    <<: *common
-    command: /bin/bash -cl "./scripts/integration_tests.sh"
-
   rest:
     <<: *common
+    tty: true
     ports:
       - "8010:8010"
     command: /bin/bash -cl "swift run Rest 0.0.0.0 8010"
 
   simple:
     <<: *common
+    tty: true
     ports:
       - "8011:8011"
     command: /bin/bash -cl "swift run Simple  0.0.0.0 8011"

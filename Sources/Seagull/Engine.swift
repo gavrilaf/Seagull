@@ -16,7 +16,7 @@ public class Engine {
     public func run(host: String, port: Int) throws {
         logger.info("Seagull engine starting....")
         
-        let group = MultiThreadedEventLoopGroup(numThreads: System.coreCount)
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
         
         let threadPool = BlockingIOThreadPool(numberOfThreads: 6)
         threadPool.start()

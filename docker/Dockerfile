@@ -41,12 +41,6 @@ RUN [ -z $install_curl_from_source ] || tar xzf $HOME/curl.tar.gz --directory $H
 RUN [ -z $install_curl_from_source ] || ( cd $HOME/.curl && ./configure --with-ssl && make && make install && cd - )
 RUN [ -z $install_curl_from_source ] || ldconfig
 
-# ruby and jazzy for docs generation
-#RUN apt-add-repository -y ppa:brightbox/ruby-ng
-#RUN apt-get update
-#RUN apt-get install -y ruby2.4 ruby2.4-dev libsqlite3-dev
-#RUN gem install jazzy --no-ri --no-rdoc
-
 # swift
 ARG swift_version=4.1
 RUN mkdir $HOME/.swift

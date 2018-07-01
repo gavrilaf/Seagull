@@ -56,6 +56,21 @@ class EngineIntegrationTests: XCTestCase {
         waitForExpectations(timeout: 1.0)
     }
     
+    func testFileNotFound() {
+        let exp = expectation(description: "wait for request")
+        
+        let task = URLSession.shared.dataTask(with: URL(string: "http://localhost:9876/file/README--.md")!) { (data, resp, err) in
+            let httpResp = resp as? HTTPURLResponse
+            
+            XCTAssertNil(err)
+            XCTAssertEqual(404, httpResp?.statusCode)
+            exp.fulfill()
+        }
+        
+        task.resume()
+        waitForExpectations(timeout: 1.0)
+    }
+    
     func testJSON() {
         let exp = expectation(description: "wait for request")
         
@@ -158,6 +173,7 @@ class EngineIntegrationTests: XCTestCase {
     static var allTests = [
         ("testHelloWord", testHelloWord),
         ("testGetFile", testGetFile),
+        ("testFileNotFound", testFileNotFound),
         ("testJSON", testJSON),
         ("testConnectionKeepAlive", testConnectionKeepAlive),
         ("testConcurrentCalls", testConcurrentCalls),

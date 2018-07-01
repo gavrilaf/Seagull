@@ -203,8 +203,9 @@ final class HTTPHandler: ChannelInboundHandler {
         let fileHandle = self.fileIO.openFile(path: response.path, eventLoop: ctx.eventLoop)
         
         fileHandle.whenFailure {
-            _ = self.sendErrorResponse(ctx: ctx, head: head, error: $0)
-            result.succeed(result: FileError.notFound(path: response.path, err: $0))
+            let error = FileError.notFound(path: response.path, err: $0)
+            _ = self.sendErrorResponse(ctx: ctx, head: head, error: error)
+            result.succeed(result: error)
         }
         
         fileHandle.whenSuccess { (file, region) in
@@ -226,11 +227,12 @@ final class HTTPHandler: ChannelInboundHandler {
                 self.completeResponse(ctx, trailers: nil, promise: p)
                 result.succeed(result: nil)
                 return p.futureResult
-            }.thenIfError { error in
+            }.thenIfError {
+                let error = FileError.ioError(path: response.path, err: $0)
                 if !responseStarted {
                     _ = self.sendErrorResponse(ctx: ctx, head: head, error: error)
                 }
-                result.succeed(result: FileError.ioError(path: response.path, err: error))
+                result.succeed(result: error)
                 return ctx.close()
             }.whenComplete {
                 _ = try? file.close()

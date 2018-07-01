@@ -1,3 +1,4 @@
+import Foundation
 import Seagull
 import NIOHTTP1
 
@@ -26,7 +27,8 @@ let jsonDictHandler: RequestHandler = { (_, ctx) in
 }
 
 let fileHandler: RequestHandler = { (_, ctx) in
-    let fileResp = SgFileResponse(path: "/Users/eugenf/Documents/Projects/Swift/my-github/HttpRouter/README.md")
+    let path = FileManager.default.currentDirectoryPath + "/README.md"
+    let fileResp = SgFileResponse(path: path, headers: HTTPHeaders([("Content-Type", "text/markdown")]))
     return SgResult.file(response: fileResp)
 }
 

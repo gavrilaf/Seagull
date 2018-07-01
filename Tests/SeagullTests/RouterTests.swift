@@ -90,6 +90,7 @@ class RouterTests: XCTestCase {
         ("testStaticRoutes", testStaticRoutes),
         ("testMethods", testMethods),
         ("testParams", testParams),
+        ("testRoutesWithSlash", testRoutesWithSlash),
         ("testGroup", testGroup)
     ]
 }

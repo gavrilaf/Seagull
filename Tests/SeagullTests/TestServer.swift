@@ -31,11 +31,7 @@ class TestWebServer {
 
         try router.add(method: .GET, relativePath: "/file/:file", handler: { (req, ctx) -> SgResult in
             let fileName = req.urlParams["file"] ?? "unknown_file"
-            
             let path = getResourcesPath(fileName: fileName, bundleClass: type(of: self))
-            
-            print("*** \(path)")
-            
             return SgResult.file(response: SgFileResponse(path: path, headers: HTTPHeaders([("Content-Type", "text/markdown")])))
         })
         

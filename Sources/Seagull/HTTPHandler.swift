@@ -160,7 +160,7 @@ final class HTTPHandler: ChannelInboundHandler {
         let sgRequest = SgRequest.from(preparedRequest: preparedRequest, head: head, body: savedBody)
         let result = preparedRequest.handle(request: sgRequest, ctx: SgRequestContext(logger: logger, errorProvider: errorProvider))
         
-        let sendResult: EventLoopFuture<Error?>
+        let sendResult: EventLoopFuture<SgError?>
         switch result {
         case .data(let response):
             sendResult = sendDataResponse(ctx: ctx, head: head, response: response)
@@ -171,12 +171,12 @@ final class HTTPHandler: ChannelInboundHandler {
         }
         
         sendResult.whenSuccess { (sendError) in
-            self.logRequest(result: result, sendError: sendError)
+            self.logRequest(request: preparedRequest, result: result, sendError: sendError)
         }
     }
     
     // MARK: -
-    private func sendDataResponse(ctx: ChannelHandlerContext, head: HTTPRequestHead, response: SgDataResponse) -> EventLoopFuture<Error?> {
+    private func sendDataResponse(ctx: ChannelHandlerContext, head: HTTPRequestHead, response: SgDataResponse) -> EventLoopFuture<SgError?> {
         var headers = response.headers
         var buffer: ByteBuffer?
         
@@ -193,13 +193,13 @@ final class HTTPHandler: ChannelInboundHandler {
         
         self.completeResponse(ctx, trailers: nil, promise: nil)
         
-        let result: EventLoopPromise<Error?> = ctx.eventLoop.newPromise()
+        let result: EventLoopPromise<SgError?> = ctx.eventLoop.newPromise()
         result.succeed(result: nil)
         return result.futureResult
     }
     
-    private func sendFileResponse(ctx: ChannelHandlerContext, head: HTTPRequestHead, response: SgFileResponse) -> EventLoopFuture<Error?> {
-        let result: EventLoopPromise<Error?> = ctx.eventLoop.newPromise()
+    private func sendFileResponse(ctx: ChannelHandlerContext, head: HTTPRequestHead, response: SgFileResponse) -> EventLoopFuture<SgError?> {
+        let result: EventLoopPromise<SgError?> = ctx.eventLoop.newPromise()
         let fileHandle = self.fileIO.openFile(path: response.path, eventLoop: ctx.eventLoop)
         
         fileHandle.whenFailure {
@@ -242,7 +242,7 @@ final class HTTPHandler: ChannelInboundHandler {
         return result.futureResult
     }
     
-    private func sendErrorResponse(ctx: ChannelHandlerContext, head: HTTPRequestHead, error: Error) -> EventLoopFuture<Error?> {
+    private func sendErrorResponse(ctx: ChannelHandlerContext, head: HTTPRequestHead, error: Error) -> EventLoopFuture<SgError?> {
         let response = errorProvider.convert(error: error).response
         
         var headers = response.headers
@@ -264,7 +264,7 @@ final class HTTPHandler: ChannelInboundHandler {
         ctx.writeAndFlush(self.wrapOutboundOut(.end(nil)), promise: nil)
         ctx.channel.close(promise: nil)
         
-        let result: EventLoopPromise<Error?> = ctx.eventLoop.newPromise()
+        let result: EventLoopPromise<SgError?> = ctx.eventLoop.newPromise()
         result.succeed(result: nil)
         return result.futureResult
     }
@@ -284,17 +284,15 @@ final class HTTPHandler: ChannelInboundHandler {
     }
     
     // MARK: -
-    private func logRouterError(_ err: Error, head: HTTPRequestHead) {
-        logger.error("\(head.method) \(head.uri), \(err)")
+    private func logRouterError(_ err: SgError, head: HTTPRequestHead) {
+        logger.error("\(head.method) \(head.uri), \(err.httpCode), \(err)")
     }
     
-    private func logRequest(result: SgResult, sendError: Error?) {
-        guard let request = preparedRequest else { return }
-        
+    private func logRequest(request: PreparedRequest, result: SgResult, sendError: SgError?) {
         let responseCode = result.httpCode
         if responseCode.code < 400 {
             if let sendError = sendError {
-                logger.error("\(request.method) \(request.uri), \(sendError)")
+                logger.error("\(request.method) \(request.uri), \(sendError.httpCode), \(sendError)")
             } else {
                 logger.info("\(request.method) \(request.uri), \(responseCode)")
             }
@@ -302,7 +300,7 @@ final class HTTPHandler: ChannelInboundHandler {
             if case let .error(errResp) = result, let err = errResp.error {
                 logger.error("\(request.method) \(request.uri), \(responseCode), \(err)")
             } else {
-                logger.info("\(request.method) \(request.uri), \(responseCode)")
+                logger.error("\(request.method) \(request.uri), \(responseCode)")
             }
         }
     }

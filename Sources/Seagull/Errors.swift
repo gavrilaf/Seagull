@@ -4,10 +4,23 @@ import NIOHTTP1
 
 // MARK: -
 
-public enum DataError: LocalizedError {
+public protocol SgError: LocalizedError {
+    var httpCode: HTTPResponseStatus { get }
+}
+
+public enum DataError: SgError {
     case emptyBody
     case decodeErr(Error)
     case encodeErr(Error)
+    
+    public var httpCode: HTTPResponseStatus {
+        switch self {
+        case .emptyBody, .decodeErr:
+            return .badRequest
+        case .encodeErr:
+            return .internalServerError
+        }
+    }
     
     public var errorDescription: String? {
         switch self {
@@ -21,10 +34,19 @@ public enum DataError: LocalizedError {
     }
 }
 
-public enum RouterError: LocalizedError {
+public enum RouterError: SgError {
     case onlyOneWildAllowed
     case notFound(method: HTTPMethod, uri: String)
     
+    public var httpCode: HTTPResponseStatus {
+        switch self {
+        case .onlyOneWildAllowed:
+            return .internalServerError
+        case .notFound:
+            return .notFound
+        }
+    }
+
     public var errorDescription: String? {
         switch self {
         case .onlyOneWildAllowed:
@@ -35,9 +57,18 @@ public enum RouterError: LocalizedError {
     }
 }
 
-public enum FileError: LocalizedError {
+public enum FileError: SgError {
     case notFound(path: String, err: Error)
     case ioError(path: String, err: Error)
+    
+    public var httpCode: HTTPResponseStatus {
+        switch self {
+        case .ioError:
+            return .internalServerError
+        case .notFound:
+            return .notFound
+        }
+    }
     
     public var errorDescription: String? {
         switch self {

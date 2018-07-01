@@ -35,6 +35,20 @@ public enum RouterError: LocalizedError {
     }
 }
 
+public enum FileError: LocalizedError {
+    case notFound(path: String, err: Error)
+    case ioError(path: String, err: Error)
+    
+    public var errorDescription: String? {
+        switch self {
+        case .notFound(let path, let err):
+            return "FileError.notFound(\(path), \(err))"
+        case .ioError(let path, let err):
+            return "FileError.ioError(\(path), \(err))"
+        }
+    }
+}
+
 // MARK: -
 
 public struct SgErrorResponse: Error {

@@ -3,6 +3,7 @@ import NIOHTTP1
 public protocol ErrorProvider {
     func routerError(_ error: RouterError) -> SgErrorResponse
     func dataError(_ error: DataError) -> SgErrorResponse
+    func fileError(_ error: FileError) -> SgErrorResponse
     func generalError(_ error: Error) -> SgErrorResponse
 }
 
@@ -13,6 +14,8 @@ extension ErrorProvider {
             return err
         case let err as RouterError:
             return routerError(err)
+        case let err as FileError:
+            return fileError(err)
         case let err as DataError:
             return dataError(err)
         default:
@@ -44,6 +47,15 @@ public final class DefaultErrorProvider: ErrorProvider {
             return SgErrorResponse.make(string: "JSON decoding error, \(err)", code: .badRequest, err: error)
         case .encodeErr(let err):
             return SgErrorResponse.make(string: "JSON encoding error, \(err)", code: .internalServerError, err: error)
+        }
+    }
+    
+    public func fileError(_ error: FileError) -> SgErrorResponse {
+        switch error {
+        case .notFound(let path, let err):
+            return SgErrorResponse.make(string: "Cant open file: \(path), \(err)", code: .notFound, err: error)
+        case .ioError(let path, let err):
+            return SgErrorResponse.make(string: "File io error: \(path), \(err)", code: .internalServerError, err: error)
         }
     }
     

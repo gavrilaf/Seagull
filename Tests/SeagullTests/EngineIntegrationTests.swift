@@ -38,6 +38,26 @@ class EngineIntegrationTests: XCTestCase {
         
         waitForExpectations(timeout: 1.0)
     }
+
+    func testGetFile() {
+        let exp = expectation(description: "wait for request")
+        
+        let task = URLSession.shared.dataTask(with: URL(string: "http://localhost:9876/file/README.md")!) { (data, resp, err) in
+            let httpResp = resp as? HTTPURLResponse
+            
+            XCTAssertNil(err)
+            XCTAssertEqual(200, httpResp?.statusCode)
+            XCTAssertEqual("text/markdown", httpResp?.allHeaderFields["Content-Type"] as? String)
+                        
+            exp.fulfill()
+        }
+        
+        task.resume()
+        
+        sleep(2)
+        
+        waitForExpectations(timeout: 4.0)
+    }
     
     func testJSON() {
         let exp = expectation(description: "wait for request")
@@ -140,6 +160,7 @@ class EngineIntegrationTests: XCTestCase {
     // MARK: -
     static var allTests = [
         ("testHelloWord", testHelloWord),
+        ("testGetFile", testGetFile),
         ("testJSON", testJSON),
         ("testConnectionKeepAlive", testConnectionKeepAlive),
         ("testConcurrentCalls", testConcurrentCalls),

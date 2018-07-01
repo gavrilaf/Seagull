@@ -1,5 +1,6 @@
 import Foundation
 import Seagull
+import NIOHTTP1
 
 struct OpRequest: Codable {
     let a: Int
@@ -26,6 +27,11 @@ class TestWebServer {
     func run(port: Int) throws {
         try router.add(method: .GET, relativePath: "/helloworld", handler: { (_, _) -> SgResult in
             return SgResult.data(response: SgDataResponse.from(string: "Hello world!"))
+        })
+
+        try router.add(method: .GET, relativePath: "/file/:file", handler: { (req, ctx) -> SgResult in
+            let fileName = req.urlParams["file"] ?? "unknown_file"
+            return SgResult.file(response: SgFileResponse(path: fileName, headers: HTTPHeaders([("Content-Type", "text/markdown")])))
         })
         
         try router.add(method: .POST, relativePath: "/op", handler: { (req, ctx) -> SgResult in

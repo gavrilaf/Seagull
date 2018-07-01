@@ -26,7 +26,7 @@ let jsonDictHandler: RequestHandler = { (_, ctx) in
 }
 
 let fileHandler: RequestHandler = { (_, ctx) in
-    let fileResp = SgFileResponse.from(path: "/Users/eugenf/Documents/Projects/Swift/my-github/HttpRouter/README.md")
+    let fileResp = SgFileResponse(path: "/Users/eugenf/Documents/Projects/Swift/my-github/HttpRouter/README.md")
     return SgResult.file(response: fileResp)
 }
 

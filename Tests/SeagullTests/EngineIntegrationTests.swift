@@ -53,10 +53,7 @@ class EngineIntegrationTests: XCTestCase {
         }
         
         task.resume()
-        
-        sleep(2)
-        
-        waitForExpectations(timeout: 4.0)
+        waitForExpectations(timeout: 1.0)
     }
     
     func testJSON() {

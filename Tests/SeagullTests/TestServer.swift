@@ -31,7 +31,9 @@ class TestWebServer {
 
         try router.add(method: .GET, relativePath: "/file/:file", handler: { (req, ctx) -> SgResult in
             let fileName = req.urlParams["file"] ?? "unknown_file"
-            return SgResult.file(response: SgFileResponse(path: fileName, headers: HTTPHeaders([("Content-Type", "text/markdown")])))
+            let path = FileManager.default.currentDirectoryPath + "/" + fileName
+            
+            return SgResult.file(response: SgFileResponse(path: path, headers: HTTPHeaders([("Content-Type", "text/markdown")])))
         })
         
         try router.add(method: .POST, relativePath: "/op", handler: { (req, ctx) -> SgResult in

@@ -210,7 +210,7 @@ final class HTTPHandler: ChannelInboundHandler {
         fileHandle.whenSuccess { (file, region) in
             var responseStarted = false
             let responseHead: HTTPResponseHead = {
-                var response = httpResponseHead(request: head, status: .ok)
+                var response = httpResponseHead(request: head, status: .ok, headers: response.headers)
                 response.headers.add(name: "Content-Length", value: "\(region.endIndex)")
                 return response
             }()

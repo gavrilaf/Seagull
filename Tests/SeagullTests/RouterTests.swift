@@ -41,6 +41,17 @@ class RouterTests: XCTestCase {
         checkRoute(router.lookup(method: .GET, uri: "/a/b/c/d/e/f"), "/:a/:b/:c/:d/:e/:f", .GET, ["a": "a", "b": "b", "c": "c", "d": "d", "e": "e", "f": "f"])
     }
     
+    func testParamAllPath() {
+        let routes = ["/file/*path", "/user/:id/*action"]
+        routes.forEach { try! router.add(method: .GET, relativePath: $0, handler: emptyHandler) }
+        
+        checkRoute(router.lookup(method: .GET, uri: "/file/index.html"), "/file/*path", .GET, ["path": "index.html"])
+        checkRoute(router.lookup(method: .GET, uri: "/file/static/index.html"), "/file/*path", .GET, ["path": "static/index.html"])
+        checkRoute(router.lookup(method: .GET, uri: "/file/static/images/logo.png"), "/file/*path", .GET, ["path": "static/images/logo.png"])
+        checkRoute(router.lookup(method: .GET, uri: "/user/vasya/send"), "/user/:id/*action", .GET, ["id": "vasya", "action": "send"])
+        checkRoute(router.lookup(method: .GET, uri: "/user/vasya/add/country/usa"), "/user/:id/*action", .GET, ["id": "vasya", "action": "add/country/usa"])
+    }
+    
     func testRoutesWithSlash() {
         let routes = ["/", "/:id", "/profile", "/profile/:id"]
         routes.forEach { try! router.add(method: .GET, relativePath: $0, handler: emptyHandler) }
@@ -90,6 +101,7 @@ class RouterTests: XCTestCase {
         ("testStaticRoutes", testStaticRoutes),
         ("testMethods", testMethods),
         ("testParams", testParams),
+        ("testParamAllPath", testParamAllPath),
         ("testRoutesWithSlash", testRoutesWithSlash),
         ("testGroup", testGroup)
     ]

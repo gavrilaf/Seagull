@@ -35,17 +35,17 @@ public final class Router {
         let components = PathBuilder(method: method, uri: relativePath).pathComponents
         
         for s in components {
-            if s.hasPrefix(":") { // wild
-                let wildName = String(s.dropFirst())
-                if let wild = current.wildChild {
-                    if wild.name == wildName {
-                        current = wild
+            if s.hasPrefix(":") || s.hasPrefix("*") { // param
+                let paramName = s.dropFirst() //String(s.dropFirst())
+                if let paramChild = current.paramChild {
+                    if paramChild.name == paramName {
+                        current = paramChild
                     } else {
                         throw RouterError.onlyOneWildAllowed
                     }
                 } else {
-                    let newNode = Node(name: wildName)
-                    current.wildChild = newNode
+                    let newNode = Node(name: String(paramName), allPath: s.hasPrefix("*"))
+                    current.paramChild = newNode
                     current = newNode
                 }
             } else {
@@ -69,12 +69,22 @@ public final class Router {
         var urlParams = StringDict()
         let components = PathBuilder(method: method, uri: uri).pathComponents
         
-        for s in components {
+        for (indx, s) in components.enumerated() {
             if let next = current.getChild(name: s) {
                 current = next
-            } else if let wild = current.wildChild {
-                urlParams[wild.name] = s
-                current = wild
+            } else if let paramChild = current.paramChild {
+                if paramChild.allPath {
+                    urlParams[paramChild.name] = components[indx..<components.count-1].joined(separator: "/")
+                    if let methodChild = paramChild.getChild(name: method.str) {
+                        current = methodChild
+                        break
+                    } else {
+                        return Result(error: RouterError.notFound(method: method, uri: uri))
+                    }
+                } else {
+                    urlParams[paramChild.name] = s
+                    current = paramChild
+                }
             } else {
                 return Result(error: RouterError.notFound(method: method, uri: uri))
             }
@@ -98,13 +108,15 @@ public final class Router {
     // MARK: -
     
     private final class Node {
-        init(name: String) {
+        init(name: String, allPath: Bool = false) {
             self.name = name
+            self.allPath = allPath
         }
         
         let name: String
+        let allPath: Bool
         
-        var wildChild: Node?
+        var paramChild: Node?
         var children = Dictionary<String, Node>()
         
         var pattern: String?

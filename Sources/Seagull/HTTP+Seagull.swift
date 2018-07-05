@@ -7,6 +7,7 @@ public struct Headers {
         public static let json = HTTPHeaders([("Content-Type", "application/json")])
         public static let octetStream = HTTPHeaders([("Content-Type", "application/octet-stream")])
         public static let html = HTTPHeaders([("Content-Type", "text/html")])
+        public static let jpg = HTTPHeaders([("Content-Type", "image/jpg")])
     }
 }
 

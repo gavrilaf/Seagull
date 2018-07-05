@@ -28,7 +28,31 @@ let jsonDictHandler: RequestHandler = { (_, ctx) in
 
 let fileHandler: RequestHandler = { (_, ctx) in
     let path = FileManager.default.currentDirectoryPath + "/README.md"
-    let fileResp = SgFileResponse(path: path, headers: HTTPHeaders([("Content-Type", "text/markdown")]))
+    let fileResp = SgFileResponse(path: path, headers: Headers.MIME.text)
+    return SgResult.file(response: fileResp)
+}
+
+
+let siteRootHandler: RequestHandler = { (_, ctx) in
+    let path = FileManager.default.currentDirectoryPath + "/html/index.html"
+    let fileResp = SgFileResponse(path: path, headers: Headers.MIME.html)
+    return SgResult.file(response: fileResp)
+}
+
+let siteContentHandler: RequestHandler = { (req, ctx) in
+    let pathParam = req.urlParams["path"] ?? "not-found"
+    
+    let mimeType: HTTPHeaders!
+    if pathParam == "index.html" {
+        mimeType = Headers.MIME.html
+    } else if pathParam.contains("images") {
+        mimeType = Headers.MIME.jpg
+    } else {
+        mimeType = Headers.MIME.octetStream
+    }
+    
+    let path = FileManager.default.currentDirectoryPath + "/html/" + pathParam
+    let fileResp = SgFileResponse(path: path, headers: mimeType)
     return SgResult.file(response: fileResp)
 }
 

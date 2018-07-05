@@ -20,6 +20,9 @@ do {
     try router.add(method: .GET, relativePath: "/json-dict", handler: jsonDictHandler)
     try router.add(method: .GET, relativePath: "/file", handler: fileHandler)
     
+    try router.add(method: .GET, relativePath: "/site/", handler: siteRootHandler)
+    try router.add(method: .GET, relativePath: "/site/*path", handler: siteContentHandler)
+    
     let engine = Engine(router: router)
     
     try engine.run(host: host, port: port)

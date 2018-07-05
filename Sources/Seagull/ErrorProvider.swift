@@ -34,8 +34,8 @@ public final class DefaultErrorProvider: ErrorProvider {
         switch error {
         case .notFound(let method, let uri):
             return SgErrorResponse.make(string: "Handler for \(method.str) \(uri) not found", code: error.httpCode, err: error)
-        case .onlyOneWildAllowed:
-            return SgErrorResponse.make(string: "Only one wild allowed", code: error.httpCode, err: error)
+        case .invalidPath(let path):
+            return SgErrorResponse.make(string: "Invalid path: \(path)", code: error.httpCode, err: error)
         }
     }
     

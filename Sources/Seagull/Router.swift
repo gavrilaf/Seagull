@@ -34,14 +34,18 @@ public final class Router {
         var current = root
         let components = PathBuilder(method: method, uri: relativePath).pathComponents
         
-        for s in components {
-            if s.hasPrefix(":") || s.hasPrefix("*") { // param
-                let paramName = s.dropFirst() //String(s.dropFirst())
+        try components.forEach { (s) in
+            if current.allPath { // allPath param with children
+                throw RouterError.invalidPath(path: relativePath)
+            }
+            
+            if s.hasPrefix(":") || s.hasPrefix("*") { // param node
+                let paramName = s.dropFirst()
                 if let paramChild = current.paramChild {
                     if paramChild.name == paramName {
                         current = paramChild
-                    } else {
-                        throw RouterError.onlyOneWildAllowed
+                    } else { // different param nodes on the one level
+                        throw RouterError.invalidPath(path: relativePath)
                     }
                 } else {
                     let newNode = Node(name: String(paramName), allPath: s.hasPrefix("*"))

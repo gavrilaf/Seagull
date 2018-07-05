@@ -35,13 +35,13 @@ public enum DataError: SgError {
 }
 
 public enum RouterError: SgError {
-    case onlyOneWildAllowed
+    case invalidPath(path: String)
     case notFound(method: HTTPMethod, uri: String)
     
     public var httpCode: HTTPResponseStatus {
         switch self {
-        case .onlyOneWildAllowed:
-            return .internalServerError
+        case .invalidPath:
+            return .badRequest
         case .notFound:
             return .notFound
         }
@@ -49,8 +49,8 @@ public enum RouterError: SgError {
 
     public var errorDescription: String? {
         switch self {
-        case .onlyOneWildAllowed:
-            return "RouterError.onlyOneWildAllowed"
+        case .invalidPath(let path):
+            return "RouterError.invalidPath(\(path))"
         case .notFound(let method, let uri):
             return "RouterError.notFound(\(method), \(uri))"
         }

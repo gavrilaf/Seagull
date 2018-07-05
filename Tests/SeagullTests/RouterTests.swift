@@ -52,6 +52,15 @@ class RouterTests: XCTestCase {
         checkRoute(router.lookup(method: .GET, uri: "/user/vasya/add/country/usa"), "/user/:id/*action", .GET, ["id": "vasya", "action": "add/country/usa"])
     }
     
+    func testRouterErrors() {
+        checkRouterError(forPath: "/*action/send")
+        checkRouterError(forPath: "/api/*action/send")
+        checkRouterError(forPath: "/api/:id/*action/send")
+        
+        try! router.add(method: .GET, relativePath: "/user/:id", handler: emptyHandler)
+        checkRouterError(forPath: "/user/:name/")
+    }
+    
     func testRoutesWithSlash() {
         let routes = ["/", "/:id", "/profile", "/profile/:id"]
         routes.forEach { try! router.add(method: .GET, relativePath: $0, handler: emptyHandler) }
@@ -96,12 +105,24 @@ class RouterTests: XCTestCase {
         }
     }
     
+    func checkRouterError(forPath path: String) {
+        XCTAssertThrowsError(try router.add(method: .GET, relativePath: path, handler: emptyHandler), "") { (err) in
+            switch err {
+            case RouterError.invalidPath(let errPath):
+                XCTAssertEqual(path, errPath)
+            default:
+                XCTAssertTrue(false, "invalid router error")
+            }
+        }
+    }
+    
     // MARK: -
     static var allTests = [
         ("testStaticRoutes", testStaticRoutes),
         ("testMethods", testMethods),
         ("testParams", testParams),
         ("testParamAllPath", testParamAllPath),
+        ("testRouterErrors", testRouterErrors),
         ("testRoutesWithSlash", testRoutesWithSlash),
         ("testGroup", testGroup)
     ]

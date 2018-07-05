@@ -31,8 +31,25 @@ class TestWebServer {
 
         try router.add(method: .GET, relativePath: "/file/:file", handler: { (req, ctx) -> SgResult in
             let fileName = req.urlParams["file"] ?? "unknown_file"
-            let path = getResourcesPath(fileName: fileName, bundleClass: type(of: self))
+            let path = getResourcesPath(filePath: fileName, bundleClass: type(of: self))
             return SgResult.file(response: SgFileResponse(path: path, headers: HTTPHeaders([("Content-Type", "text/markdown")])))
+        })
+        
+        try router.add(method: .GET, relativePath: "/site/*path", handler: { (req, ctx) -> SgResult in
+            let pathParam = "html/" + (req.urlParams["path"] ?? "not-found")
+            
+            let mimeType: HTTPHeaders!
+            if pathParam.contains("index.html") {
+                mimeType = Headers.MIME.html
+            } else if pathParam.contains("images") {
+                mimeType = Headers.MIME.jpg
+            } else {
+                mimeType = Headers.MIME.octetStream
+            }
+            
+            let path = getResourcesPath(filePath: pathParam, bundleClass: type(of: self))
+            let fileResp = SgFileResponse(path: path, headers: mimeType)
+            return SgResult.file(response: fileResp)
         })
         
         try router.add(method: .POST, relativePath: "/op", handler: { (req, ctx) -> SgResult in

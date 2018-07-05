@@ -14,8 +14,8 @@ extension SgRequest {
     }
 }
 
-func getResourcesPath(fileName: String, bundleClass: AnyClass) -> String {
-    let path = FileManager.default.currentDirectoryPath + "/" + fileName
+func getResourcesPath(filePath: String, bundleClass: AnyClass) -> String {
+    let path = FileManager.default.currentDirectoryPath + "/" + filePath
     #if os(Linux)
         return path
     #else
@@ -24,6 +24,6 @@ func getResourcesPath(fileName: String, bundleClass: AnyClass) -> String {
         }
     
         let bundlePath = Bundle(for: bundleClass).resourcePath!
-        return bundlePath[bundlePath.startIndex..<bundlePath.range(of: "Seagull/")!.upperBound] + "/" + fileName
+        return bundlePath[bundlePath.startIndex..<bundlePath.range(of: "Seagull/")!.upperBound] + "/" + filePath
     #endif
 }

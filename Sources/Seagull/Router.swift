@@ -32,7 +32,7 @@ public final class Router {
     
     public func add(method: HTTPMethod, relativePath: String, handler: @escaping RequestHandler, middleware: MiddlewareChain = []) throws {
         var current = root
-        let components = PathBuilder(method: method, uri: relativePath).pathComponents
+        let components = UriParser(uri: relativePath).pathComponents
         
         try components.forEach { (s) in
             if current.allPath { // allPath param with children
@@ -63,15 +63,22 @@ public final class Router {
             }
         }
         
-        current.pattern = relativePath
-        current.middleware = middleware
-        current.handler = handler
+        // create node with HTTP method
+        let methodNode = Node(name: method.str)
+        
+        methodNode.pattern = relativePath
+        methodNode.middleware = middleware
+        methodNode.handler = handler
+        
+        current.addChild(node: methodNode)
     }
     
     public func lookup(method: HTTPMethod, uri: String) -> RouterResult {
         var current = root
         var urlParams = StringDict()
-        let components = PathBuilder(method: method, uri: uri).pathComponents
+        
+        var components = UriParser(uri: uri).pathComponents
+        components.append(method.str) // POST - /action/send -> ['action', 'send', 'POST']
         
         for (indx, s) in components.enumerated() {
             if let next = current.getChild(name: s) {

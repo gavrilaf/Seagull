@@ -131,6 +131,27 @@ class EngineIntegrationTests: XCTestCase {
         waitForExpectations(timeout: 1.0)
     }
     
+    func testQueryParams() {
+        let exp = expectation(description: "wait for request")
+        
+        let task = URLSession.shared.dataTask(with: URL(string: "http://localhost:9876/withParams?p1=abc&p2=&p3=100")!) { (data, resp, err) in
+            let httpResp = resp as? HTTPURLResponse
+            
+            XCTAssertNil(err)
+            XCTAssertEqual(200, httpResp?.statusCode)
+            XCTAssertEqual("text/plain", httpResp?.allHeaderFields["Content-Type"] as? String)
+            
+            let str = String(data: data!, encoding: .utf8)
+            XCTAssertEqual("p1=abc p2= p3=100", str)
+            
+            exp.fulfill()
+        }
+        
+        task.resume()
+        
+        waitForExpectations(timeout: 1.0)
+    }
+
     func testJSON() {
         let exp = expectation(description: "wait for request")
         
@@ -237,6 +258,7 @@ class EngineIntegrationTests: XCTestCase {
         ("testFileNotFound", testFileNotFound),
         ("testGetFilesByPath", testGetFilesByPath),
         ("testFileByPathNotFound", testFileByPathNotFound),
+        ("testQueryParams", testQueryParams),
         ("testJSON", testJSON),
         ("testConnectionKeepAlive", testConnectionKeepAlive),
         ("testConcurrentCalls", testConcurrentCalls),

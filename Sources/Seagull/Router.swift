@@ -77,8 +77,9 @@ public final class Router {
         var current = root
         var urlParams = StringDict()
         
-        var components = UriParser(uri: uri).pathComponents
-        components.append(method.str) // POST - /action/send -> ['action', 'send', 'POST']
+        let parsedUri = UriParser(uri: uri)
+        var components = parsedUri.pathComponents
+        components.append(method.str) // POST: /action/send -> ['action', 'send', 'POST']
         
         for (indx, s) in components.enumerated() {
             if let next = current.getChild(name: s) {
@@ -106,7 +107,7 @@ public final class Router {
                                     pattern: pattern,
                                     method: method,
                                     urlParams: urlParams,
-                                    queryParams: [:],
+                                    queryParams: parsedUri.queryParams,
                                     middleware: middleware,
                                     handler: handler)
             

@@ -52,6 +52,14 @@ class TestWebServer {
             return SgResult.file(response: fileResp)
         })
         
+        try router.add(method: .GET, relativePath: "/withParams", handler: { (req, ctx) -> SgResult in
+            let p1 = req.queryParams["p1"] ?? "not-found"
+            let p2 = req.queryParams["p2"] ?? "not-found"
+            let p3 = req.queryParams["p3"] ?? "not-found"
+            
+            return SgResult.data(response: SgDataResponse.from(string: "p1=\(p1) p2=\(p2) p3=\(p3)"))
+        })
+        
         try router.add(method: .POST, relativePath: "/op", handler: { (req, ctx) -> SgResult in
             do {
                 let op = try ctx.decode(OpRequest.self, request: req)

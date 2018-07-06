@@ -5,10 +5,11 @@ public struct SgFileResponse {
     public let code: HTTPResponseStatus
     public let headers: HTTPHeaders
     public let path: String
-}
-
-extension SgFileResponse {
-    public static func from(path: String) -> SgFileResponse {
-        return SgFileResponse(code: .ok, headers: HTTPHeaders(), path: path)
+    
+    public init(path: String, headers: HTTPHeaders = Headers.MIME.octetStream, code: HTTPResponseStatus = .ok) {
+        self.path = path
+        self.headers = headers
+        self.code = code
     }
 }
+

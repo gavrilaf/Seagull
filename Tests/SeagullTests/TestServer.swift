@@ -1,5 +1,6 @@
 import Foundation
 import Seagull
+import NIOHTTP1
 
 struct OpRequest: Codable {
     let a: Int
@@ -26,6 +27,37 @@ class TestWebServer {
     func run(port: Int) throws {
         try router.add(method: .GET, relativePath: "/helloworld", handler: { (_, _) -> SgResult in
             return SgResult.data(response: SgDataResponse.from(string: "Hello world!"))
+        })
+
+        try router.add(method: .GET, relativePath: "/file/:file", handler: { (req, ctx) -> SgResult in
+            let fileName = req.urlParams["file"] ?? "unknown_file"
+            let path = getResourcesPath(filePath: fileName, bundleClass: type(of: self))
+            return SgResult.file(response: SgFileResponse(path: path, headers: HTTPHeaders([("Content-Type", "text/markdown")])))
+        })
+        
+        try router.add(method: .GET, relativePath: "/site/*path", handler: { (req, ctx) -> SgResult in
+            let pathParam = "html/" + (req.urlParams["path"] ?? "not-found")
+            
+            let mimeType: HTTPHeaders!
+            if pathParam.contains("index.html") {
+                mimeType = Headers.MIME.html
+            } else if pathParam.contains("images") {
+                mimeType = Headers.MIME.jpg
+            } else {
+                mimeType = Headers.MIME.octetStream
+            }
+            
+            let path = getResourcesPath(filePath: pathParam, bundleClass: type(of: self))
+            let fileResp = SgFileResponse(path: path, headers: mimeType)
+            return SgResult.file(response: fileResp)
+        })
+        
+        try router.add(method: .GET, relativePath: "/withParams", handler: { (req, ctx) -> SgResult in
+            let p1 = req.queryParams["p1"] ?? "not-found"
+            let p2 = req.queryParams["p2"] ?? "not-found"
+            let p3 = req.queryParams["p3"] ?? "not-found"
+            
+            return SgResult.data(response: SgDataResponse.from(string: "p1=\(p1) p2=\(p2) p3=\(p3)"))
         })
         
         try router.add(method: .POST, relativePath: "/op", handler: { (req, ctx) -> SgResult in

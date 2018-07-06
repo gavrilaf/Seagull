@@ -32,20 +32,24 @@ public final class Router {
     
     public func add(method: HTTPMethod, relativePath: String, handler: @escaping RequestHandler, middleware: MiddlewareChain = []) throws {
         var current = root
-        let components = PathBuilder(method: method, uri: relativePath).pathComponents
+        let components = UriParser(uri: relativePath).pathComponents
         
-        for s in components {
-            if s.hasPrefix(":") { // wild
-                let wildName = String(s.dropFirst())
-                if let wild = current.wildChild {
-                    if wild.name == wildName {
-                        current = wild
-                    } else {
-                        throw RouterError.onlyOneWildAllowed
+        try components.forEach { (s) in
+            if current.allPath { // allPath param with children
+                throw RouterError.invalidPath(path: relativePath)
+            }
+            
+            if s.hasPrefix(":") || s.hasPrefix("*") { // param node
+                let paramName = s.dropFirst()
+                if let paramChild = current.paramChild {
+                    if paramChild.name == paramName {
+                        current = paramChild
+                    } else { // different param nodes on the one level
+                        throw RouterError.invalidPath(path: relativePath)
                     }
                 } else {
-                    let newNode = Node(name: wildName)
-                    current.wildChild = newNode
+                    let newNode = Node(name: String(paramName), allPath: s.hasPrefix("*"))
+                    current.paramChild = newNode
                     current = newNode
                 }
             } else {
@@ -59,22 +63,40 @@ public final class Router {
             }
         }
         
-        current.pattern = relativePath
-        current.middleware = middleware
-        current.handler = handler
+        // create node with HTTP method
+        let methodNode = Node(name: method.str)
+        
+        methodNode.pattern = relativePath
+        methodNode.middleware = middleware
+        methodNode.handler = handler
+        
+        current.addChild(node: methodNode)
     }
     
     public func lookup(method: HTTPMethod, uri: String) -> RouterResult {
         var current = root
         var urlParams = StringDict()
-        let components = PathBuilder(method: method, uri: uri).pathComponents
         
-        for s in components {
+        let parsedUri = UriParser(uri: uri)
+        var components = parsedUri.pathComponents
+        components.append(method.str) // POST: /action/send -> ['action', 'send', 'POST']
+        
+        for (indx, s) in components.enumerated() {
             if let next = current.getChild(name: s) {
                 current = next
-            } else if let wild = current.wildChild {
-                urlParams[wild.name] = s
-                current = wild
+            } else if let paramChild = current.paramChild {
+                if paramChild.allPath {
+                    urlParams[paramChild.name] = components[indx..<components.count-1].joined(separator: "/")
+                    if let methodChild = paramChild.getChild(name: method.str) {
+                        current = methodChild
+                        break
+                    } else {
+                        return Result(error: RouterError.notFound(method: method, uri: uri))
+                    }
+                } else {
+                    urlParams[paramChild.name] = s
+                    current = paramChild
+                }
             } else {
                 return Result(error: RouterError.notFound(method: method, uri: uri))
             }
@@ -85,7 +107,7 @@ public final class Router {
                                     pattern: pattern,
                                     method: method,
                                     urlParams: urlParams,
-                                    queryParams: [:],
+                                    queryParams: parsedUri.queryParams,
                                     middleware: middleware,
                                     handler: handler)
             
@@ -98,13 +120,15 @@ public final class Router {
     // MARK: -
     
     private final class Node {
-        init(name: String) {
+        init(name: String, allPath: Bool = false) {
             self.name = name
+            self.allPath = allPath
         }
         
         let name: String
+        let allPath: Bool
         
-        var wildChild: Node?
+        var paramChild: Node?
         var children = Dictionary<String, Node>()
         
         var pattern: String?

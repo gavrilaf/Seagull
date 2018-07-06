@@ -14,7 +14,7 @@ class EngineNIOTests: XCTestCase {
         self.server = TestWebServer()
         XCTAssertNoThrow(try self.server.run(port: 0))
         
-        self.clientGroup = MultiThreadedEventLoopGroup(numThreads: 1)
+        self.clientGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
     }
     
     override func tearDown() {

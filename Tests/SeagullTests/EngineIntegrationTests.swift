@@ -38,7 +38,120 @@ class EngineIntegrationTests: XCTestCase {
         
         waitForExpectations(timeout: 1.0)
     }
+
+    func test404Error() {
+        let exp = expectation(description: "wait for request")
+        
+        let task = URLSession.shared.dataTask(with: URL(string: "http://localhost:9876/helloworld--")!) { (data, resp, err) in
+            let httpResp = resp as? HTTPURLResponse
+            
+            XCTAssertNil(err)
+            XCTAssertEqual(404, httpResp?.statusCode)
+            exp.fulfill()
+        }
+        
+        task.resume()
+        waitForExpectations(timeout: 1.0)
+    }
+
     
+    func testGetFile() {
+        let exp = expectation(description: "wait for request")
+        
+        let task = URLSession.shared.dataTask(with: URL(string: "http://localhost:9876/file/README.md")!) { (data, resp, err) in
+            let httpResp = resp as? HTTPURLResponse
+            
+            XCTAssertNil(err)
+            XCTAssertEqual(200, httpResp?.statusCode)
+            XCTAssertEqual("text/markdown", httpResp?.allHeaderFields["Content-Type"] as? String)
+                        
+            exp.fulfill()
+        }
+        
+        task.resume()
+        waitForExpectations(timeout: 1.0)
+    }
+    
+    func testFileNotFound() {
+        let exp = expectation(description: "wait for request")
+        
+        let task = URLSession.shared.dataTask(with: URL(string: "http://localhost:9876/file/README--.md")!) { (data, resp, err) in
+            let httpResp = resp as? HTTPURLResponse
+            
+            XCTAssertNil(err)
+            XCTAssertEqual(404, httpResp?.statusCode)
+            exp.fulfill()
+        }
+        
+        task.resume()
+        waitForExpectations(timeout: 1.0)
+    }
+    
+    func testGetFilesByPath() {
+        let exp = [expectation(description: "html"), expectation(description: "image")]
+        
+        let taskHtml = URLSession.shared.dataTask(with: URL(string: "http://localhost:9876/site/index.html")!) { (data, resp, err) in
+            let httpResp = resp as? HTTPURLResponse
+            
+            XCTAssertNil(err)
+            XCTAssertEqual(200, httpResp?.statusCode)
+            XCTAssertEqual("text/html", httpResp?.allHeaderFields["Content-Type"] as? String)
+            
+            exp[0].fulfill()
+        }
+        
+        let taskImage = URLSession.shared.dataTask(with: URL(string: "http://localhost:9876/site/images/seagull.jpg")!) { (data, resp, err) in
+            let httpResp = resp as? HTTPURLResponse
+            
+            XCTAssertNil(err)
+            XCTAssertEqual(200, httpResp?.statusCode)
+            XCTAssertEqual("image/jpg", httpResp?.allHeaderFields["Content-Type"] as? String)
+            
+            exp[1].fulfill()
+        }
+        
+        taskHtml.resume()
+        taskImage.resume()
+
+        waitForExpectations(timeout: 1.0)
+    }
+    
+    func testFileByPathNotFound() {
+        let exp = expectation(description: "wait for request")
+        
+        let task = URLSession.shared.dataTask(with: URL(string: "http://localhost:9876/site/index--.html")!) { (data, resp, err) in
+            let httpResp = resp as? HTTPURLResponse
+            
+            XCTAssertNil(err)
+            XCTAssertEqual(404, httpResp?.statusCode)
+            exp.fulfill()
+        }
+        
+        task.resume()
+        waitForExpectations(timeout: 1.0)
+    }
+    
+    func testQueryParams() {
+        let exp = expectation(description: "wait for request")
+        
+        let task = URLSession.shared.dataTask(with: URL(string: "http://localhost:9876/withParams?p1=abc&p2=&p3=100")!) { (data, resp, err) in
+            let httpResp = resp as? HTTPURLResponse
+            
+            XCTAssertNil(err)
+            XCTAssertEqual(200, httpResp?.statusCode)
+            XCTAssertEqual("text/plain", httpResp?.allHeaderFields["Content-Type"] as? String)
+            
+            let str = String(data: data!, encoding: .utf8)
+            XCTAssertEqual("p1=abc p2= p3=100", str)
+            
+            exp.fulfill()
+        }
+        
+        task.resume()
+        
+        waitForExpectations(timeout: 1.0)
+    }
+
     func testJSON() {
         let exp = expectation(description: "wait for request")
         
@@ -140,6 +253,12 @@ class EngineIntegrationTests: XCTestCase {
     // MARK: -
     static var allTests = [
         ("testHelloWord", testHelloWord),
+        ("test404Error", test404Error),
+        ("testGetFile", testGetFile),
+        ("testFileNotFound", testFileNotFound),
+        ("testGetFilesByPath", testGetFilesByPath),
+        ("testFileByPathNotFound", testFileByPathNotFound),
+        ("testQueryParams", testQueryParams),
         ("testJSON", testJSON),
         ("testConnectionKeepAlive", testConnectionKeepAlive),
         ("testConcurrentCalls", testConcurrentCalls),

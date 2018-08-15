@@ -1,61 +1,7 @@
 import Foundation
 import XCTest
-import Dispatch
-import NIO
+import Seagull
 import NIOHTTP1
-
-extension Channel {
-    func syncCloseAcceptingAlreadyClosed() throws {
-        do {
-            try self.close().wait()
-        } catch ChannelError.alreadyClosed {
-            /* we're happy with this one */
-        } catch let e {
-            throw e
-        }
-    }
-}
-
-extension Array where Array.Element == ByteBuffer {
-    public func allAsBytes() -> [UInt8] {
-        var out: [UInt8] = []
-        out.reserveCapacity(self.reduce(0, { $0 + $1.readableBytes }))
-        self.forEach { bb in
-            bb.withUnsafeReadableBytes { ptr in
-                out.append(contentsOf: ptr)
-            }
-        }
-        return out
-    }
-    
-    public func allAsString() -> String? {
-        return String(decoding: self.allAsBytes(), as: UTF8.self)
-    }
-}
-
-class ArrayAccumulationHandler<T>: ChannelInboundHandler {
-    typealias InboundIn = T
-    private var receiveds: [T] = []
-    private var allDoneBlock: DispatchWorkItem! = nil
-    
-    public init(completion: @escaping ([T]) -> Void) {
-        self.allDoneBlock = DispatchWorkItem { [unowned self] () -> Void in
-            completion(self.receiveds)
-        }
-    }
-    
-    public func channelRead(ctx: ChannelHandlerContext, data: NIOAny) {
-        self.receiveds.append(self.unwrapInboundIn(data))
-    }
-    
-    public func channelUnregistered(ctx: ChannelHandlerContext) {
-        self.allDoneBlock.perform()
-    }
-    
-    public func syncWaitForCompletion() {
-        self.allDoneBlock.wait()
-    }
-}
 
 class HTTPClientResponsePartAssertHandler: ArrayAccumulationHandler<HTTPClientResponsePart> {
     public init(_ expectedVersion: HTTPVersion, _ expectedStatus: HTTPResponseStatus, _ expectedHeaders: HTTPHeaders, _ expectedBody: String?, _ expectedTrailers: HTTPHeaders? = nil) {

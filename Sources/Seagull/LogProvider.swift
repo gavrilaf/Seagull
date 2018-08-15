@@ -51,3 +51,18 @@ public final class DefaultLogger: LogProtocol  {
     
     let queue = DispatchQueue(label: "log-queue", qos: .utility)
 }
+
+
+public final class EmptyLogger: LogProtocol  {
+    
+    public init() {}
+    
+    public func info(_ msg: @autoclosure @escaping () -> String) {
+    }
+    
+    public func warning(_ msg: @autoclosure @escaping () -> String) {
+    }
+    
+    public func error(_ msg: @autoclosure @escaping () -> String) {
+    }
+}

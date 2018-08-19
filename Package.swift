@@ -14,12 +14,13 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/antitypical/Result.git", from: "4.0.0"),
         .package(url: "https://github.com/apple/swift-nio.git", from: "1.8.0"),
+        .package(url: "https://github.com/gavrilaf/SwiftPerfTool.git", from: "0.0.1"),
     ],
     targets: [
         .target(name: "Seagull", dependencies: ["NIO", "NIOHTTP1", "NIOConcurrencyHelpers", "Result"]),
         .target(name: "Simple", dependencies: ["Seagull"], path: "Sources/Examples/Simple"),
         .target(name: "Rest", dependencies: ["Seagull"], path: "Sources/Examples/Rest"),
-        .target(name: "PerfTest", dependencies: ["Seagull"], path: "Sources/Examples/PerfTest"),
+        .target(name: "PerfTest", dependencies: ["Seagull", "SwiftPerfTool"], path: "Sources/Examples/PerfTest"),
         .testTarget(name: "SeagullTests", dependencies: ["Seagull"]),
     ]
 )

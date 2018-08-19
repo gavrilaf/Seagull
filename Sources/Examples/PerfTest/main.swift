@@ -2,6 +2,7 @@ import Foundation
 import Seagull
 import NIO
 import NIOHTTP1
+import SwiftPerfTool
 
 // MARK: - Helpers
 
@@ -33,32 +34,31 @@ class HTTPClientResponsePartHandler: ArrayAccumulationHandler<HTTPClientResponse
     }
 }
 
-func runRequest(pool: MultiThreadedEventLoopGroup, address:SocketAddress, uri: String, expected: String, repeats: Int) {
-    (0...repeats).forEach { _ in
-        let accumulation = HTTPClientResponsePartHandler(expected)
+func runRequest(pool: MultiThreadedEventLoopGroup, address:SocketAddress, uri: String, expected: String) {
+    let accumulation = HTTPClientResponsePartHandler(expected)
         
-        let clientChannel = try! ClientBootstrap(group: pool)
-            .channelInitializer { channel in
-                channel.pipeline.addHTTPClientHandlers().then {
-                    channel.pipeline.add(handler: accumulation)
-                }
+    let clientChannel = try! ClientBootstrap(group: pool)
+        .channelInitializer { channel in
+            channel.pipeline.addHTTPClientHandlers().then {
+                channel.pipeline.add(handler: accumulation)
             }
-            .connect(to: address)
-            .wait()
-        
-        defer {
-            try! clientChannel.syncCloseAcceptingAlreadyClosed()
         }
+        .connect(to: address)
+        .wait()
         
-        var head = HTTPRequestHead(version: HTTPVersion(major: 1, minor: 1), method: .GET, uri: uri)
-        head.headers.add(name: "Connection", value: "close")
-    
-        clientChannel.write(NIOAny(HTTPClientRequestPart.head(head)), promise: nil)
-        try! clientChannel.writeAndFlush(NIOAny(HTTPClientRequestPart.end(nil))).wait()
-    
-        accumulation.syncWaitForCompletion()
+    defer {
+        try! clientChannel.syncCloseAcceptingAlreadyClosed()
     }
+        
+    var head = HTTPRequestHead(version: HTTPVersion(major: 1, minor: 1), method: .GET, uri: uri)
+    head.headers.add(name: "Connection", value: "close")
+    
+    clientChannel.write(NIOAny(HTTPClientRequestPart.head(head)), promise: nil)
+    try! clientChannel.writeAndFlush(NIOAny(HTTPClientRequestPart.end(nil))).wait()
+    
+    accumulation.syncWaitForCompletion()
 }
+
 
 // MARK: - Server
 
@@ -103,23 +103,16 @@ try! server.run(port: 0)
 
 let clientGroup = MultiThreadedEventLoopGroup(numberOfThreads: 4)
 
-let iterations = 100
+let cfg = SFTConfig(iteractions: 1000, batchSize: 4)
 
-let startTime = CFAbsoluteTimeGetCurrent()
-
-(0..<iterations).forEach { _ in
-    runRequest(pool: clientGroup, address: server.engine.localAddress!, uri: "/simple", expected: "simple", repeats: 10)
-    runRequest(pool: clientGroup, address: server.engine.localAddress!, uri: "/param/id1234", expected: "param: id1234", repeats: 10)
-    runRequest(pool: clientGroup, address: server.engine.localAddress!, uri: "/path/script.js", expected: "path: script.js", repeats: 10)
-    runRequest(pool: clientGroup, address: server.engine.localAddress!, uri: "/simple/query?p=id5678", expected: "simple/query: id5678", repeats: 10)
+let result = runMeasure(with: cfg) {
+    runRequest(pool: clientGroup, address: server.engine.localAddress!, uri: "/simple", expected: "simple")
+    runRequest(pool: clientGroup, address: server.engine.localAddress!, uri: "/param/id1234", expected: "param: id1234")
+    runRequest(pool: clientGroup, address: server.engine.localAddress!, uri: "/path/script.js", expected: "path: script.js")
+    runRequest(pool: clientGroup, address: server.engine.localAddress!, uri: "/simple/query?p=id5678", expected: "simple/query: id5678")
 }
 
-let totalTime = CFAbsoluteTimeGetCurrent() - startTime
-let oneQueryTime = totalTime / Double(iterations * 40)
-
-print("Average points: \(oneQueryTime * 1000)")
-
-
+print("Result: \(result)")
 
 
 

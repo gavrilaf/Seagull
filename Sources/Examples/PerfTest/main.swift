@@ -103,14 +103,16 @@ try! server.run(port: 0)
 
 let clientGroup = MultiThreadedEventLoopGroup(numberOfThreads: 4)
 
-let cfg = SFTConfig(iteractions: 1000, batchSize: 4)
+let trials: [() -> Void] = [
+    { runRequest(pool: clientGroup, address: server.engine.localAddress!, uri: "/simple", expected: "simple") },
+    { runRequest(pool: clientGroup, address: server.engine.localAddress!, uri: "/param/id1234", expected: "param: id1234") },
+    { runRequest(pool: clientGroup, address: server.engine.localAddress!, uri: "/path/script.js", expected: "path: script.js") },
+    { runRequest(pool: clientGroup, address: server.engine.localAddress!, uri: "/simple/query?p=id5678", expected: "simple/query: id5678") }
+]
 
-let result = runMeasure(with: cfg) {
-    runRequest(pool: clientGroup, address: server.engine.localAddress!, uri: "/simple", expected: "simple")
-    runRequest(pool: clientGroup, address: server.engine.localAddress!, uri: "/param/id1234", expected: "param: id1234")
-    runRequest(pool: clientGroup, address: server.engine.localAddress!, uri: "/path/script.js", expected: "path: script.js")
-    runRequest(pool: clientGroup, address: server.engine.localAddress!, uri: "/simple/query?p=id5678", expected: "simple/query: id5678")
-}
+let cfg = SFTConfig(iterations: 1000, trials:trials)
+
+let result = runMeasure(with: cfg)
 
 print("Result: \(result)")
 

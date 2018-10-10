@@ -29,10 +29,19 @@ func AssertAddRouteError(_ router: HttpRouter, _ path: String, file: StaticStrin
 }
 
 func AssertRouterSgResult(_ res: SgResult, _ body: String, _ code: HTTPResponseStatus = HTTPResponseStatus.ok, file: StaticString = #file, line: UInt = #line) {
-    XCTAssertEqual(HTTPResponseStatus.ok, res.httpCode, file: file, line: line)
-    if case .data(let resp) = res {
-        XCTAssertEqual(body.data(using: .utf8), resp.body, file: file, line: line)
-    } else {
-        XCTFail("RouterResult is failed", file: file, line: line)
+    XCTAssertEqual(code, res.httpCode, file: file, line: line)
+    
+    if res.httpCode == HTTPResponseStatus.ok {
+        if case .data(let resp) = res {
+            XCTAssertEqual(body.data(using: .utf8), resp.body, file: file, line: line)
+        } else {
+            XCTFail("RouterResult has invalid type, should be data", file: file, line: line)
+        }
+    } else { // error
+        if case .error(let resp) = res {
+            XCTAssertEqual(body.data(using: .utf8), resp.response.body, file: file, line: line)
+        } else {
+            XCTFail("RouterResult has invalid type, should be error", file: file, line: line)
+        }
     }
 }

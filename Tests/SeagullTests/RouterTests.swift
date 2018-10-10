@@ -29,9 +29,9 @@ class RouterTests: XCTestCase {
         methods.forEach { try! router.add(handler: emptyHandler, for: "/", method: $0) }
         
         AssertRouteFound(router.lookup(uri: "/", method: .GET), "/", .GET)
-        AssertRouteFound(router.lookup(uri: "/", method: .POST), "/", .GET)
-        AssertRouteFound(router.lookup(uri: "/", method: .PUT), "/", .GET)
-        AssertRouteFound(router.lookup(uri: "/", method: .DELETE), "/", .GET)
+        AssertRouteFound(router.lookup(uri: "/", method: .POST), "/", .POST)
+        AssertRouteFound(router.lookup(uri: "/", method: .PUT), "/", .PUT)
+        AssertRouteFound(router.lookup(uri: "/", method: .DELETE), "/", .DELETE)
     }
     
     func testParams() {
@@ -57,11 +57,10 @@ class RouterTests: XCTestCase {
     }
     
     func testRouterErrors() {
-        AssertAddRouteError(router, "/*action/send")
-        AssertAddRouteError(router, "/api/*action/send")
-        AssertAddRouteError(router,  "/api/:id/*action/send")
-        
+        try! router.GET("/api/*action/send", handler: emptyHandler)
         try! router.GET("/user/:id", handler: emptyHandler)
+        
+        AssertAddRouteError(router,  "/api/:id/*action/send")
         AssertAddRouteError(router,  "/user/:name/")
     }
     

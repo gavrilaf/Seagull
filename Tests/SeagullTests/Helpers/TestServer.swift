@@ -36,7 +36,7 @@ class TestWebServer {
         })
         
         try router.GET("/site/*path", handler: { (req, ctx) -> SgResult in
-            let pathParam = "html/" + (req.route.uriParams["path"] ?? "not-found")
+            let pathParam = "test-data/" + (req.route.uriParams["path"] ?? "not-found")
             
             let mimeType: HTTPHeaders!
             if pathParam.contains("index.html") {

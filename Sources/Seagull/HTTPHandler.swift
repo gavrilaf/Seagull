@@ -59,13 +59,13 @@ final class HTTPHandler: ChannelInboundHandler {
     private var savedBody: ByteBuffer?
     
     private let fileIO: NonBlockingFileIO
-    private let router: Router
+    private let router: HttpRouter
     private let logger: LogProtocol
     private let errorProvider: ErrorProvider
     
-    private var preparedRequest: PreparedRequest?
+    private var routeHandler: RouteHandler?
     
-    init(router: Router, fileIO: NonBlockingFileIO, logger: LogProtocol, errorProvider: ErrorProvider) {
+    init(router: HttpRouter, fileIO: NonBlockingFileIO, logger: LogProtocol, errorProvider: ErrorProvider) {
         self.router = router
         self.fileIO = fileIO
         self.logger = logger
@@ -76,22 +76,21 @@ final class HTTPHandler: ChannelInboundHandler {
     func channelRead(ctx: ChannelHandlerContext, data: NIOAny) {
         let reqPart = self.unwrapInboundIn(data)
         
-        if self.preparedRequest != nil { // Route handler already initialized, just continue processing
+        if self.routeHandler != nil { // Route handler already initialized, just continue processing
             handlerReqPart(ctx: ctx, reqPart: reqPart)
             return
         }
         
         switch reqPart {
         case .head(let head):
-            let res = router.lookup(method: head.method, uri: head.uri)
+            let res = router.lookup(uri: head.uri, method: head.method)
             switch res {
-            case .success(let preparedRequest):
-                self.preparedRequest = preparedRequest
+            case .success(let handler):
+                self.routeHandler = handler
                 handlerReqPart(ctx: ctx, reqPart: reqPart)
             case .failure(let err):
                 self.keepAlive = head.isKeepAlive
                 self.state.requestReceived()
-                
                 logRouterError(err, head: head)
                 _ = sendErrorResponse(ctx: ctx, head: head, error: err)
             }
@@ -153,12 +152,13 @@ final class HTTPHandler: ChannelInboundHandler {
     }
     
     private func handleRequest(ctx: ChannelHandlerContext) {
-        guard let head = self.savedRequestHead, let preparedRequest = self.preparedRequest else {
+        guard let head = self.savedRequestHead, let routeHandler = self.routeHandler else {
             fatalError("Something wrong, should never happens")
         }
         
-        let sgRequest = SgRequest.from(preparedRequest: preparedRequest, head: head, body: savedBody)
-        let result = preparedRequest.handle(request: sgRequest, ctx: SgRequestContext(logger: logger, errorProvider: errorProvider))
+        let request = SgRequest(route: routeHandler.parsedRoute, extra: RequestExtra.make(from: head, body: savedBody))
+        let context = SgRequestContext(logger: logger, errorProvider: errorProvider)
+        let result = routeHandler.handle(request: request, with: context)
         
         let sendResult: EventLoopFuture<SgError?>
         switch result {
@@ -171,7 +171,7 @@ final class HTTPHandler: ChannelInboundHandler {
         }
         
         sendResult.whenSuccess { (sendError) in
-            self.logRequest(request: preparedRequest, result: result, sendError: sendError)
+            self.logRequest(request: request, result: result, sendError: sendError)
         }
     }
     
@@ -280,7 +280,7 @@ final class HTTPHandler: ChannelInboundHandler {
         ctx.writeAndFlush(self.wrapOutboundOut(.end(trailers)), promise: promise)
         
         self.savedBody = nil
-        self.preparedRequest = nil
+        self.routeHandler = nil
     }
     
     // MARK: -
@@ -288,19 +288,21 @@ final class HTTPHandler: ChannelInboundHandler {
         logger.error("\(head.method) \(head.uri), \(err.httpCode), \(err)")
     }
     
-    private func logRequest(request: PreparedRequest, result: SgResult, sendError: SgError?) {
+    private func logRequest(request: SgRequest, result: SgResult, sendError: SgError?) {
         let responseCode = result.httpCode
+        let route = request.route
+        
         if responseCode.code < 400 {
             if let sendError = sendError {
-                logger.error("\(request.method) \(request.uri), \(sendError.httpCode), \(sendError)")
+                logger.error("\(route.method) \(route.uri), \(sendError.httpCode), \(sendError)")
             } else {
-                logger.info("\(request.method) \(request.uri), \(responseCode)")
+                logger.info("\(route.method) \(route.uri), \(responseCode)")
             }
         } else {
             if case let .error(errResp) = result, let err = errResp.error {
-                logger.error("\(request.method) \(request.uri), \(responseCode), \(err)")
+                logger.error("\(route.method) \(route.uri), \(responseCode), \(err)")
             } else {
-                logger.error("\(request.method) \(request.uri), \(responseCode)")
+                logger.error("\(route.method) \(route.uri), \(responseCode)")
             }
         }
     }

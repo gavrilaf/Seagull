@@ -63,31 +63,31 @@ func runRequest(pool: MultiThreadedEventLoopGroup, address:SocketAddress, uri: S
 // MARK: - Server
 
 class WebServer {
-    var router: Router
+    var router: HttpRouter
     var engine: Engine
     
     init() {
-        let router = Router()
+        let router = HttpRouter()
         
         self.router = router
         self.engine = Engine(router: router, logger: EmptyLogger())
     }
     
     func run(port: Int) throws {
-        try router.add(method: .GET, relativePath: "/simple", handler: { (_, _) -> SgResult in
+        try router.GET("/simple", handler: { (_, _) -> SgResult in
             return SgResult.data(response: SgDataResponse.from(string: "simple"))
         })
         
-        try router.add(method: .GET, relativePath: "/param/:name", handler: { (req, _) -> SgResult in
-            return SgResult.data(response: SgDataResponse.from(string: "param: \(req.urlParams["name"] ?? "")"))
+        try router.GET("/param/:name", handler: { (req, _) -> SgResult in
+            return SgResult.data(response: SgDataResponse.from(string: "param: \(req.route.uriParams["name"] ?? "")"))
         })
         
-        try router.add(method: .GET, relativePath: "/path/*path", handler: { (req, _) -> SgResult in
-            return SgResult.data(response: SgDataResponse.from(string: "path: \(req.urlParams["path"] ?? "")"))
+        try router.GET("/path/*path", handler: { (req, _) -> SgResult in
+            return SgResult.data(response: SgDataResponse.from(string: "path: \(req.route.uriParams["path"] ?? "")"))
         })
         
-        try router.add(method: .GET, relativePath: "/simple/query", handler: { (req, _) -> SgResult in
-            return SgResult.data(response: SgDataResponse.from(string: "simple/query: \(req.queryParams["p"] ?? "")"))
+        try router.GET("/simple/query", handler: { (req, _) -> SgResult in
+            return SgResult.data(response: SgDataResponse.from(string: "simple/query: \(req.route.queryParams["p"] ?? "")"))
         })
         
         try engine.run(host: "127.0.0.1", port: port)
@@ -110,7 +110,7 @@ let trials: [() -> Void] = [
     { runRequest(pool: clientGroup, address: server.engine.localAddress!, uri: "/simple/query?p=id5678", expected: "simple/query: id5678") }
 ]
 
-let cfg = SFTConfig(iterations: 1000, trials:trials)
+let cfg = SPTConfig(iterations: 1000, trials:trials)
 
 let result = runMeasure(with: cfg)
 

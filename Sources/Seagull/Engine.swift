@@ -7,7 +7,7 @@ public enum EngineError: Error {
 
 public class Engine {
     
-    public init(router: Router, logger: LogProtocol = DefaultLogger(), errorProvider: ErrorProvider = DefaultErrorProvider()) {
+    public init(router: HttpRouter, logger: LogProtocol = DefaultLogger(), errorProvider: ErrorProvider = DefaultErrorProvider()) {
         self.router = router
         self.logger = logger
         self.errorProvider = errorProvider
@@ -71,7 +71,7 @@ public class Engine {
     
     // MARK: -
     
-    private let router: Router
+    private let router: HttpRouter
     
     private let logger: LogProtocol
     private let errorProvider: ErrorProvider

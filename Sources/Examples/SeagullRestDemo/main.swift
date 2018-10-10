@@ -12,9 +12,9 @@ if CommandLine.arguments.count == 3 {
 do {
     print("Starting Seagull base REST server...")
     
-    var router = Router()
+    var router = HttpRouter()
     
-    try router.add(method: .GET, relativePath: "/", handler: Handlers.ping)
+    try router.GET("/", handler: Handlers.ping)
     
     try router.group("/auth") {
         try $0.PUT("/register", handler: Handlers.register)
@@ -28,8 +28,8 @@ do {
         try $0.DELETE("/", handler: Handlers.deleteProfile)
     }
     
-    try router.add(method: .POST, relativePath: "/logout", handler: Handlers.logout, middleware: [Handlers.tokenMiddleware])
-    try router.add(method: .GET, relativePath: "/whoami", handler: Handlers.whoami, middleware: [Handlers.tokenMiddleware])
+    try router.POST("logout", handler: Handlers.logout, with: [Handlers.tokenMiddleware])
+    try router.GET("whoami", handler: Handlers.whoami, with: [Handlers.tokenMiddleware])
     
     let engine = Engine(router: router)
     try engine.run(host: host, port: port)

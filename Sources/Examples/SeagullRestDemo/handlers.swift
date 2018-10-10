@@ -129,7 +129,7 @@ class Db {
 struct Handlers {
     
     static func tokenMiddleware(_ request: SgRequest, _ ctx: SgRequestContext) -> MiddlewareResult {
-        if let token = request.headers[canonicalForm: "Authorization"].first {
+        if let token = request.extra.headers[canonicalForm: "Authorization"].first {
             var mutableCtx = ctx
             mutableCtx.set(value: token, forKey: "token")
             return MiddlewareResult(value: mutableCtx)
@@ -181,11 +181,11 @@ struct Handlers {
         do {
             _ = try Db.inst.getUsername(forToken: ctx.string(forKey: "token"))
             
-            guard let username = request.urlParams["username"] else {
+            guard let username = request.route.uriParams["username"] else {
                 throw AppLogicError.invalidParam
             }
             
-            let profile = try Db.inst.getProfile(username: username)
+            let profile = try Db.inst.getProfile(username: String(username))
             return ctx.encode(json: profile)
         } catch let err {
             return ctx.error(err)

@@ -4,8 +4,10 @@ test:
 	swift test
 
 run-rest:
-	swift build
-	./.build/debug/SgBaseRest
+	swift run SeagullRestDemo
+
+run-perf-test:
+	swift run SeagullPerfTest
 
 ptest: 
 	( \

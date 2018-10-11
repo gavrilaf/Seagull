@@ -13,7 +13,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/antitypical/Result.git", from: "4.0.0"),
         .package(url: "https://github.com/apple/swift-nio.git", from: "1.9.5"),
-        .package(url: "https://github.com/gavrilaf/SwiftPerfTool.git", from: "0.1.0"),
+        .package(url: "https://github.com/gavrilaf/SwiftPerfTool.git", from: "0.1.1"),
         .package(url: "https://github.com/gavrilaf/SgRouter.git", from: "0.1.0"),
     ],
     targets: [

@@ -25,11 +25,9 @@ services:
     tty: true
     ports:
       - "8010:8010"
-    command: /bin/bash -cl "swift run Rest 0.0.0.0 8010"
+    command: /bin/bash -cl "swift run SeagullRestDemo 0.0.0.0 8010"
 
-  simple:
+  perf:
     <<: *common
     tty: true
-    ports:
-      - "8011:8011"
-    command: /bin/bash -cl "swift run Simple  0.0.0.0 8011"
+    command: /bin/bash -cl "swift run SeagullPerfTest"

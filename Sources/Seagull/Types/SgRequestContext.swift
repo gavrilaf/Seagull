@@ -34,7 +34,7 @@ extension SgRequestContext {
     
     // MARK:-
     public func decode<T: Decodable>(_ t: T.Type, request: SgRequest) throws -> T {
-        guard let body = request.body else {
+        guard let body = request.extra.body else {
             throw DataError.emptyBody
         }
         

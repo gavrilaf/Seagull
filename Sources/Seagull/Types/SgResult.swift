@@ -7,7 +7,6 @@ public enum SgResult {
 }
 
 extension SgResult: CustomStringConvertible {
-    
     public var httpCode: HTTPResponseStatus {
         switch self {
         case .data(let r):
